@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="4.0" Serie="A" Folio="A1004" Fecha="2026-09-11T11:25:00" SubTotal="1391.70" Moneda="MXN" Total="1614.37" TipoDeComprobante="I" Exportacion="01" MetodoPago="PUE" FormaPago="03" LugarExpedicion="45119">
+  <cfdi:Emisor Rfc="SLT200915QW2" Nombre="SERVICIOS LOGISTICOS TAPATIOS DEMO" RegimenFiscal="601"/>
+  <cfdi:Receptor Rfc="CDE150101AB1" Nombre="CLIENTE DEMO" DomicilioFiscalReceptor="45119" RegimenFiscalReceptor="601" UsoCFDI="G03"/>
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="E48" Descripcion="Servicio de flete" ValorUnitario="1391.70" Importe="1391.70" ObjetoImp="02">
+      <cfdi:Impuestos><cfdi:Traslados><cfdi:Traslado Base="1391.70" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="222.67"/></cfdi:Traslados></cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="222.67">
+    <cfdi:Traslados><cfdi:Traslado Base="1391.70" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="222.67"/></cfdi:Traslados>
+  </cfdi:Impuestos>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital Version="1.1" UUID="ADEC6F11-7D83-6E77-AF67-D461E4163207" FechaTimbrado="2026-09-11T11:25:00" RfcProvCertif="SPR190613I52" NoCertificadoSAT="00001000000500000000"/>
+  </cfdi:Complemento>
+</cfdi:Comprobante>

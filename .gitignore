@@ -1,0 +1,10 @@
+.env
+# las instrucciones de la prueba son confidenciales
+docs/Instrucciones_Prueba_Tecnica_KMG.pdf
+# se generan con los comandos; el Excel y el log sí se suben como entregables
+salida/facturas.db
+salida/pdf/
+__pycache__/
+.pytest_cache/
+.venv/
+.env

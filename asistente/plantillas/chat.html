@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisión de CFDI</title>
+<style>
+  :root { --fondo:#f3f1ec; --panel:#fff; --texto:#1f2328; --tenue:#6b7280; --yo:#d9f2e1; --borde:#dcd8cf;
+          --acento:#1f7a4d; --aviso:#8a5a00; --error:#b3261e; --suave:#eceae4; --codigo:#f6f5f1; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fondo:#15171a; --panel:#1f2226; --texto:#e7e9ec; --tenue:#9aa1ab; --yo:#1f4a36; --borde:#32363c;
+            --acento:#4fc08a; --aviso:#e0b055; --error:#f2857d; --suave:#282c31; --codigo:#17191c; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height:100%; }
+  body { margin:0; display:flex; flex-direction:column; background:var(--fondo); color:var(--texto);
+         font: 15px/1.5 system-ui, "Segoe UI", sans-serif; }
+  header { display:flex; align-items:center; gap:10px; padding:10px 16px; background:var(--panel);
+           border-bottom:1px solid var(--borde); }
+  header .titulo { flex:1; min-width:0; }
+  header .titulo b { display:block; }
+  header .titulo span { color:var(--tenue); font-size:13px; }
+  .aviso { background:var(--suave); color:var(--aviso); padding:8px 16px; font-size:14px; font-weight:600;
+           border-bottom:1px solid var(--borde); }
+  .aviso:empty { display:none; }
+  .boton { display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid var(--borde);
+           border-radius:8px; background:var(--panel); color:var(--texto); font:inherit; font-size:14px;
+           cursor:pointer; text-decoration:none; white-space:nowrap; }
+  .boton:hover { border-color:var(--acento); }
+  .boton.principal { background:var(--acento); border-color:var(--acento); color:#fff; font-weight:600; }
+  @media (prefers-color-scheme: dark) { .boton.principal { color:#10241a; } }
+  button:disabled { opacity:.5; cursor:default; }
+
+  #conversacion { flex:1; overflow-y:auto; padding:16px; }
+  #chat { display:flex; flex-direction:column; gap:12px; max-width:860px; margin:0 auto; }
+  .msg { max-width:88%; padding:10px 13px; border-radius:14px; overflow-wrap:anywhere;
+         background:var(--panel); border:1px solid var(--borde); align-self:flex-start; }
+  .msg .texto { white-space:pre-wrap; }
+  .msg.yo { background:var(--yo); border-color:transparent; align-self:flex-end; white-space:pre-wrap; }
+  .msg.ancho { width:100%; max-width:100%; }
+  .msg.espera { color:var(--tenue); }
+  .msg.espera::after { content:''; animation: puntos 1.2s steps(4) infinite; }
+  @keyframes puntos { 0% { content:''; } 25% { content:'.'; } 50% { content:'..'; } 75% { content:'...'; } }
+
+  /* SQL y filas de cada consulta */
+  details.consulta { margin-top:10px; border:1px solid var(--borde); border-radius:10px; background:var(--fondo); }
+  details.consulta summary { cursor:pointer; padding:6px 10px; font-size:13px; color:var(--tenue); }
+  details.consulta.fallo summary { color:var(--error); }
+  details.consulta pre { margin:0; padding:8px 10px; background:var(--codigo); border-top:1px solid var(--borde);
+                         font:12.5px/1.45 ui-monospace, Consolas, monospace; white-space:pre-wrap; }
+  .tabla { overflow-x:auto; border-top:1px solid var(--borde); }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { padding:4px 8px; border-bottom:1px solid var(--borde); text-align:left; white-space:nowrap; }
+  th { background:var(--suave); font-weight:600; }
+  td.num, th.num { text-align:right; font-variant-numeric: tabular-nums; }
+  .nota-tabla { padding:4px 10px; font-size:12px; color:var(--tenue); }
+
+  /* archivos adjuntos */
+  .archivos { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .archivo { border:1px solid var(--borde); border-radius:10px; background:var(--fondo); overflow:hidden; }
+  .archivo .fila { display:flex; align-items:center; gap:10px; padding:8px 10px; flex-wrap:wrap; }
+  .archivo .ext { flex:none; width:40px; height:40px; border-radius:8px; display:grid; place-items:center;
+                  font-size:11px; font-weight:700; color:#fff; background:var(--acento); }
+  .archivo .ext.pdf { background:#b3261e; }
+  .archivo .info { flex:1; min-width:140px; }
+  .archivo .info b { display:block; font-size:14px; }
+  .archivo .info span { color:var(--tenue); font-size:13px; }
+  .archivo .acciones { display:flex; gap:6px; }
+  .archivo iframe { display:block; width:100%; height:70vh; border:0; border-top:1px solid var(--borde); background:#fff; }
+
+  /* pantalla inicial */
+  .bienvenida { text-align:center; padding:5vh 0 8px; }
+  .bienvenida h1 { font-size:22px; margin:0 0 6px; }
+  .bienvenida p { color:var(--tenue); margin:0 0 20px; }
+  .grupos { display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); text-align:left; }
+  .grupo { background:var(--panel); border:1px solid var(--borde); border-radius:12px; padding:12px; }
+  .grupo h2 { font-size:13px; color:var(--tenue); margin:0 0 8px; font-weight:600; }
+  .grupo button { display:block; width:100%; text-align:left; background:none; border:0; border-radius:8px;
+                  padding:6px 8px; color:var(--texto); font:inherit; font-size:14px; cursor:pointer; }
+  .grupo button:hover { background:var(--suave); }
+
+  /* barra con lo del reto: siempre visible, no usa IA */
+  .reto { display:flex; flex-wrap:wrap; align-items:center; gap:6px; max-width:860px; margin:0 auto 8px; }
+  .reto > span { color:var(--tenue); font-size:12px; font-weight:600; margin-right:2px; }
+  .reto .boton { padding:4px 10px; font-size:13px; border-radius:999px; }
+  .grupo.destacado { border-color:var(--acento); }
+
+  #pregunta { padding:10px 16px 14px; background:var(--fondo); border-top:1px solid var(--borde); }
+  #pregunta .caja { display:flex; gap:8px; align-items:flex-end; max-width:860px; margin:0 auto; }
+  #texto { flex:1; min-width:0; resize:none; max-height:160px; padding:10px 12px; border:1px solid var(--borde);
+           border-radius:12px; background:var(--panel); color:var(--texto); font:inherit; }
+  #texto:focus { outline:2px solid var(--acento); outline-offset:-1px; }
+  #pregunta p { max-width:860px; margin:6px auto 0; color:var(--tenue); font-size:12px; text-align:center; }
+  @media (max-width: 560px) { .msg, .msg.ancho { max-width:100%; width:100%; } header .boton span { display:none; } }
+</style>
+<header>
+  <div class="titulo"><b>Revisión de CFDI</b><span id="cifras">{{ cifras }}</span></div>
+  <button class="boton" id="nueva" title="Nueva conversación">＋ <span>Nueva conversación</span></button>
+</header>
+<div class="aviso">{{ aviso }}</div>
+<div id="conversacion"><div id="chat"></div></div>
+<form id="pregunta">
+  <div class="reto" id="reto"><span>Lo del reto (sin IA):</span></div>
+  <div class="caja">
+    <textarea id="texto" rows="1" placeholder="Pregunta por las facturas, los proveedores o las incidencias" autocomplete="off"></textarea>
+    <button class="boton principal" id="enviar">Enviar</button>
+  </div>
+  <p>Preguntas libres con IA ({{ modelo }}): Enter para enviar · Shift+Enter para otra línea · El SQL se ejecuta en solo lectura</p>
+</form>
+<script>
+const $ = s => document.querySelector(s);
+const chat = $('#chat'), zona = $('#conversacion'), texto = $('#texto'), enviar = $('#enviar');
+const GUARDADO = 'conversacion-cfdi';
+// lo que pide el reto: respuestas fijas del servidor, sin IA
+const RETO = [['cargar', 'Cargar XML'], ['detalle', 'Detalle'], ['resumen', 'Resumen por proveedor'],
+              ['incidencias', 'Incidencias'], ['excel', 'Excel']];
+// lo extra: ejemplos de preguntas libres para la IA
+const EJEMPLOS = {
+  'Pregúntale': ['¿Qué proveedor me cobró más IVA?', '¿Cuál fue la factura más alta?', '¿Qué le compré a la constructora?'],
+  'Incidencias': ['¿Qué facturas venían duplicadas?', '¿Por qué hay facturas sin IVA?', '¿Qué archivo venía dañado?'],
+  'PDF': ['Dame el PDF de la factura más alta', 'PDF de las facturas de Mario García', 'PDF de la última factura de septiembre'],
+};
+
+// crea un elemento; el texto siempre entra como texto, nunca como HTML
+function h(tag, props, ...hijos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'class') e.className = v;
+    else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const x of hijos.flat()) if (x !== null && x !== undefined && x !== false) e.append(x.nodeType ? x : String(x));
+  return e;
+}
+
+// la conversación se guarda en este navegador para que sobreviva a una recarga
+let mensajes = [];
+try { mensajes = JSON.parse(localStorage.getItem(GUARDADO)) || []; } catch (e) { mensajes = []; }
+function guardar() { try { localStorage.setItem(GUARDADO, JSON.stringify(mensajes.slice(-40))); } catch (e) {} }
+
+function abajo() { zona.scrollTop = zona.scrollHeight; }
+
+// **negritas** sin interpretar nada más como HTML
+function formato(t) {
+  const d = h('div', { class: 'texto' });
+  t.split(/(\*\*[^*\n]+\*\*)/).forEach(parte => {
+    if (/^\*\*[^*\n]+\*\*$/.test(parte)) d.append(h('b', null, parte.slice(2, -2)));
+    else d.append(parte);
+  });
+  return d;
+}
+
+const dinero = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// una columna con algún decimal es de importes: todos sus valores llevan 2 decimales (0 -> 0.00)
+function celda(v, importe) {
+  if (typeof v === 'number') return h('td', { class: 'num' }, importe ? dinero.format(v) : String(v));
+  return h('td', null, v === null ? '' : v);
+}
+
+function consulta(c, abierta) {
+  if (c.error) return h('details', { class: 'consulta fallo' },
+    h('summary', null, 'Consulta rechazada o con error (el error se le regresó al modelo)'),
+    h('pre', null, (c.sql || '') + '\n\n-- ' + c.error));
+  const filas = c.total === 1 ? '1 fila' : `${c.mas ? 'más de ' + (c.total - 1) : c.total} filas`;
+  const numerica = c.columnas.map((_, i) => c.filas.length > 0 && typeof c.filas[0][i] === 'number');
+  const importe = c.columnas.map((_, i) => c.filas.some(f => typeof f[i] === 'number' && !Number.isInteger(f[i])));
+  return h('details', { class: 'consulta', open: abierta },
+    h('summary', null, `${c.titulo || 'SQL ejecutado'} · ${filas}`),
+    c.sql ? h('pre', null, c.sql) : null,
+    c.filas.length ? h('div', { class: 'tabla' }, h('table', null,
+      h('thead', null, h('tr', null, c.columnas.map((x, i) => h('th', { class: numerica[i] ? 'num' : null }, x)))),
+      h('tbody', null, c.filas.map(f => h('tr', null, f.map((v, i) => celda(v, importe[i]))))))) : null,
+    c.total > c.filas.length ? h('div', { class: 'nota-tabla' }, `Se muestran ${c.filas.length} filas.`) : null);
+}
+
+function archivo(a, abierto) {
+  const ext = (a.nombre.split('.').pop() || '').toLowerCase();
+  const tarjeta = h('div', { class: 'archivo' });
+  let vista = null;
+  const ver = h('button', { class: 'boton', type: 'button', onclick: () => alternar() }, 'Ver');
+  function alternar(abrir) {
+    abrir = abrir ?? !vista;
+    if (abrir && !vista) { vista = h('iframe', { src: a.url, title: a.nombre }); tarjeta.append(vista); ver.textContent = 'Ocultar'; }
+    else if (!abrir && vista) { vista.remove(); vista = null; ver.textContent = 'Ver'; }
+  }
+  tarjeta.append(h('div', { class: 'fila' },
+    h('div', { class: 'ext ' + ext }, ext.toUpperCase()),
+    h('div', { class: 'info' }, h('b', null, a.nombre), a.nota ? h('span', null, a.nota) : null),
+    h('div', { class: 'acciones' },
+      ext === 'pdf' ? ver : null,
+      h('a', { class: 'boton' + (ext === 'pdf' ? '' : ' principal'), href: a.url, download: a.nombre }, 'Descargar'))));
+  if (abierto) alternar(true);
+  return tarjeta;
+}
+
+function pintar(m, nuevo) {
+  if (m.rol === 'yo') { const d = h('div', { class: 'msg yo' }, m.texto); chat.append(d); return d; }
+  const d = h('div', { class: 'msg' }, formato(m.texto));
+  const consultas = m.consultas || [], adjuntos = m.adjuntos || [];
+  if (consultas.length || adjuntos.length) d.classList.add('ancho');
+  // la última consulta que funcionó se muestra abierta: es la que sostiene la respuesta
+  const ultima = consultas.map(c => !c.error).lastIndexOf(true);
+  consultas.forEach((c, i) => d.append(consulta(c, i === ultima)));
+  if (adjuntos.length) {
+    const pdfs = adjuntos.filter(a => a.nombre.toLowerCase().endsWith('.pdf'));
+    d.append(h('div', { class: 'archivos' }, adjuntos.map(a => archivo(a, nuevo && pdfs.length === 1 && pdfs[0] === a))));
+  }
+  chat.append(d);
+  return d;
+}
+
+function bienvenida() {
+  chat.replaceChildren(h('div', { class: 'bienvenida' },
+    h('h1', null, '¿Qué quieres revisar de las facturas?'),
+    h('p', null, 'Usa los botones del reto, o pregunta en español: la IA escribe el SQL, lo ejecuta y te muestra los datos.'),
+    h('div', { class: 'grupos' },
+      h('div', { class: 'grupo destacado' }, h('h2', null, 'Lo del reto (sin IA)'),
+        RETO.map(([accion, etiqueta]) => h('button', { type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta))),
+      Object.entries(EJEMPLOS).map(([titulo, lista]) => h('div', { class: 'grupo' },
+        h('h2', null, titulo + ' (IA)'), lista.map(t => h('button', { type: 'button', onclick: () => preguntar(t) }, t)))))));
+}
+
+function inicio() {
+  if (!mensajes.length) return bienvenida();
+  chat.replaceChildren();
+  mensajes.forEach(m => pintar(m, false));
+  abajo();
+}
+
+function preguntar(pregunta) { return mandar(pregunta, '/preguntar', { pregunta }); }
+function reto(accion, etiqueta) { return mandar(etiqueta, '/reto/' + accion, {}); }
+
+async function mandar(etiqueta, url, cuerpo) {
+  if (enviar.disabled) return;
+  if (!mensajes.length) chat.replaceChildren();
+  const mio = { rol: 'yo', texto: etiqueta };
+  mensajes.push(mio); guardar(); pintar(mio);
+  const espera = h('div', { class: 'msg espera' }, 'Consultando');
+  chat.append(espera); abajo();
+  enviar.disabled = true;
+  let r;
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify(cuerpo) });
+    if (!res.ok) throw new Error(res.status);
+    const datos = await res.json();
+    r = { rol: 'ia', texto: datos.texto, consultas: datos.consultas, adjuntos: datos.adjuntos };
+    if (datos.cifras) $('#cifras').textContent = datos.cifras;
+    mensajes.push(r); guardar();
+  } catch (e) {
+    r = { rol: 'ia', texto: 'No se pudo conectar con el bot. ¿Sigue abierto bot.py en la terminal?' };
+  }
+  espera.remove();
+  const d = pintar(r, true);
+  enviar.disabled = false;
+  d.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  texto.focus();
+}
+
+function ajustar() { texto.style.height = 'auto'; texto.style.height = texto.scrollHeight + 'px'; }
+texto.addEventListener('input', ajustar);
+texto.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#pregunta').requestSubmit(); }
+});
+$('#pregunta').addEventListener('submit', e => {
+  e.preventDefault();
+  const p = texto.value.trim();
+  if (!p || enviar.disabled) return;
+  texto.value = ''; ajustar();
+  preguntar(p);
+});
+$('#nueva').addEventListener('click', async () => {
+  if (enviar.disabled) return;
+  try { await fetch('/reiniciar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); } catch (e) {}
+  mensajes = []; guardar(); bienvenida(); texto.focus();
+});
+
+RETO.forEach(([accion, etiqueta]) =>
+  $('#reto').append(h('button', { class: 'boton', type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta)));
+inicio();
+texto.focus();
+</script>
+</html>

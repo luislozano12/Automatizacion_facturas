@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="4.0" Serie="A" Folio="A1015" Fecha="2026-09-09T16:25:00" SubTotal="34539.77" Moneda="MXN" Total="40066.13" TipoDeComprobante="I" Exportacion="01" MetodoPago="PUE" FormaPago="03" LugarExpedicion="45119">
+  <cfdi:Emisor Rfc="PAP180312KL4" Nombre="PAPELERIA DEL BAJIO DEMO" RegimenFiscal="601"/>
+  <cfdi:Receptor Rfc="CDE150101AB1" Nombre="CLIENTE DEMO" DomicilioFiscalReceptor="45119" RegimenFiscalReceptor="601" UsoCFDI="G03"/>
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="E48" Descripcion="Papeleria y consumibles" ValorUnitario="34539.77" Importe="34539.77" ObjetoImp="02">
+      <cfdi:Impuestos><cfdi:Traslados><cfdi:Traslado Base="34539.77" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="5526.36"/></cfdi:Traslados></cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="5526.36">
+    <cfdi:Traslados><cfdi:Traslado Base="34539.77" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="5526.36"/></cfdi:Traslados>
+  </cfdi:Impuestos>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital Version="1.1" UUID="8BAE8E66-FA97-002C-FCBA-D167F5A9CA5F" FechaTimbrado="2026-09-09T16:25:00" RfcProvCertif="SPR190613I52" NoCertificadoSAT="00001000000500000000"/>
+  </cfdi:Complemento>
+</cfdi:Comprobante>

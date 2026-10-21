@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="4.0" Serie="A" Folio="A1014" Fecha="2026-09-15T18:30:00" SubTotal="11643.92" Moneda="MXN" Total="13506.95" TipoDeComprobante="I" Exportacion="01" MetodoPago="PUE" FormaPago="03" LugarExpedicion="45119">
+  <cfdi:Emisor Rfc="CON170405PL9" Nombre="CONSTRUCTORA ATEMAJAC DEMO" RegimenFiscal="601"/>
+  <cfdi:Receptor Rfc="CDE150101AB1" Nombre="CLIENTE DEMO" DomicilioFiscalReceptor="45119" RegimenFiscalReceptor="601" UsoCFDI="G03"/>
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="E48" Descripcion="Remodelacion de oficina" ValorUnitario="11643.92" Importe="11643.92" ObjetoImp="02">
+      <cfdi:Impuestos><cfdi:Traslados><cfdi:Traslado Base="11643.92" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="1863.03"/></cfdi:Traslados></cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="1863.03">
+    <cfdi:Traslados><cfdi:Traslado Base="11643.92" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="1863.03"/></cfdi:Traslados>
+  </cfdi:Impuestos>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital Version="1.1" UUID="B3618E1C-A06D-7A69-1F3C-42B2E2CBBB93" FechaTimbrado="2026-09-15T18:30:00" RfcProvCertif="SPR190613I52" NoCertificadoSAT="00001000000500000000"/>
+  </cfdi:Complemento>
+</cfdi:Comprobante>
