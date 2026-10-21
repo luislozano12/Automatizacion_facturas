@@ -63,7 +63,8 @@ Archivos:
 descripción coincide con varias facturas y no está claro cuál quieren, lista las candidatas y pregunta.
 - Si piden el Excel o el reporte de revisión, llama a `enviar_excel`.
 
-Respuesta: breve, en español, en texto plano (puedes usar **negritas**), con el dato que se pidió. Dinero como \
+Respuesta: breve, en español, en texto plano (puedes usar **negritas**), con el dato que se pidió. Trata al \
+usuario de usted, con tono profesional y sobrio, propio de un despacho. Dinero como \
 $1,234.56. No copies tablas largas: quien pregunta ya ve las filas de tus consultas. Si la pregunta no tiene que \
 ver con las facturas, di en una línea que solo atiendes temas de las facturas cargadas."""
 
@@ -212,19 +213,19 @@ def responder(pregunta, historial=(), cliente=None):
             except ValueError as e:
                 resultado = f"Argumentos inválidos: {e}"
             mensajes.append({"role": "tool", "tool_call_id": llamada.id, "content": resultado})
-    return "No pude terminar de responder; intenta con una pregunta más específica.", consultas, adjuntos
+    return "No fue posible completar la respuesta; intente con una consulta más específica.", consultas, adjuntos
 
 
 def error_api(e):
     """Mensaje para el usuario de un error de la API de OpenAI."""
     if isinstance(e, openai.AuthenticationError):
-        return "La API key de OpenAI no es válida. Revisa OPENAI_API_KEY en el archivo .env."
+        return "La API key de OpenAI no es válida. Revise OPENAI_API_KEY en el archivo .env."
     if isinstance(e, openai.NotFoundError):
-        return f"No existe el modelo '{MODELO}'. Revisa MODELO_OPENAI en el archivo .env."
+        return f"No existe el modelo '{MODELO}'. Revise MODELO_OPENAI en el archivo .env."
     if isinstance(e, openai.RateLimitError):
         return "OpenAI rechazó la consulta por límite de uso o falta de saldo en la cuenta."
     if isinstance(e, openai.APIConnectionError):
-        return "No hay conexión con OpenAI; revisa el internet."
+        return "No hay conexión con OpenAI; revise la conexión a internet."
     if isinstance(e, openai.APIStatusError):
         return f"OpenAI devolvió un error ({e.status_code}): {e.message}"
     return f"Error con OpenAI: {e}"
@@ -233,8 +234,8 @@ def error_api(e):
 def configurado():
     """Texto del problema de configuración que impide preguntar, o None si todo está listo."""
     if not os.getenv("OPENAI_API_KEY"):
-        return ("Sin OPENAI_API_KEY: los botones del reto funcionan, pero para preguntas libres copia "
-                ".env.example como .env y pon tu llave de OpenAI.")
+        return ("Sin OPENAI_API_KEY: los reportes del reto funcionan; para las consultas con IA, copie "
+                ".env.example como .env y agregue su llave de OpenAI.")
     if not config.DB.is_file():
         return SIN_DATOS
     return None

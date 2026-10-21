@@ -4,118 +4,147 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Revisión de CFDI</title>
 <style>
-  :root { --fondo:#f3f1ec; --panel:#fff; --texto:#1f2328; --tenue:#6b7280; --yo:#d9f2e1; --borde:#dcd8cf;
-          --acento:#1f7a4d; --aviso:#8a5a00; --error:#b3261e; --suave:#eceae4; --codigo:#f6f5f1; }
+  /* Paleta formal: carbón y dorado, la misma del Excel (revision/reportes.py) */
+  :root { --carbon:#1f1f1f; --dorado:#c9a13b; --dorado-oscuro:#8a6d1f; --fondo:#f4f1ea; --panel:#ffffff;
+          --texto:#1f1f1f; --tenue:#6b6558; --borde:#ddd6c7; --franja:#f8f6f1; --yo:#1f1f1f; --yo-texto:#f4f1ea;
+          --codigo:#faf8f3; --aviso:#7a5c12; --error:#8b1e2d; --vino:#7a1f2b;
+          --serif: Georgia, "Times New Roman", serif; }
   @media (prefers-color-scheme: dark) {
-    :root { --fondo:#15171a; --panel:#1f2226; --texto:#e7e9ec; --tenue:#9aa1ab; --yo:#1f4a36; --borde:#32363c;
-            --acento:#4fc08a; --aviso:#e0b055; --error:#f2857d; --suave:#282c31; --codigo:#17191c; }
+    :root { --fondo:#121212; --panel:#1b1b1b; --texto:#ece8df; --tenue:#a39e93; --borde:#33302a; --franja:#202020;
+            --yo:#2a2722; --yo-texto:#ece8df; --codigo:#161616; --aviso:#e0b955; --error:#e0808c; --dorado-oscuro:#c9a13b; }
   }
   * { box-sizing: border-box; }
   html, body { height:100%; }
   body { margin:0; display:flex; flex-direction:column; background:var(--fondo); color:var(--texto);
-         font: 15px/1.5 system-ui, "Segoe UI", sans-serif; }
-  header { display:flex; align-items:center; gap:10px; padding:10px 16px; background:var(--panel);
-           border-bottom:1px solid var(--borde); }
+         font: 15px/1.55 "Segoe UI", system-ui, sans-serif; }
+
+  /* encabezado: barra carbón con línea dorada, igual en claro y oscuro */
+  header { display:flex; align-items:center; gap:14px; padding:12px 24px; background:var(--carbon);
+           border-bottom:3px solid var(--dorado); color:#f4f1ea; }
+  header .marca { width:34px; height:34px; flex:none; display:grid; place-items:center; border:1px solid var(--dorado);
+                  color:var(--dorado); font: 600 15px var(--serif); letter-spacing:.5px; }
   header .titulo { flex:1; min-width:0; }
-  header .titulo b { display:block; }
-  header .titulo span { color:var(--tenue); font-size:13px; }
-  header label { display:flex; align-items:center; gap:6px; color:var(--tenue); font-size:13px; }
-  header select { max-width:260px; padding:6px 8px; border:1px solid var(--borde); border-radius:8px;
-                  background:var(--panel); color:var(--texto); font:inherit; font-size:14px; }
+  header .titulo b { display:block; font: 600 19px/1.2 var(--serif); letter-spacing:.3px; }
+  header .titulo small { display:block; color:var(--dorado); font-size:10.5px; letter-spacing:1.6px;
+                         text-transform:uppercase; margin-top:2px; }
+  header .titulo span { display:block; color:#b9b3a6; font-size:12.5px; margin-top:3px; }
+  header label { display:flex; align-items:center; gap:8px; color:#b9b3a6; font-size:11px; letter-spacing:1.2px;
+                 text-transform:uppercase; }
+  header select { max-width:280px; padding:7px 10px; border:1px solid #4a463d; border-radius:2px; background:#2a2a2a;
+                  color:#f4f1ea; font:inherit; font-size:13.5px; letter-spacing:0; text-transform:none; }
+  header select:focus { outline:1px solid var(--dorado); }
+  header .boton { background:transparent; color:#f4f1ea; border-color:#4a463d; }
+  header .boton:hover { border-color:var(--dorado); color:var(--dorado); }
+
   /* zona para soltar XML: cubre la página mientras se arrastran archivos */
-  #soltar { position:fixed; inset:0; z-index:10; display:none; place-items:center; background:rgba(31,122,77,.18);
-            border:3px dashed var(--acento); font-size:20px; font-weight:700; color:var(--acento); pointer-events:none; }
+  #soltar { position:fixed; inset:0; z-index:10; display:none; place-items:center; background:rgba(201,161,59,.14);
+            border:2px dashed var(--dorado); font: 600 22px var(--serif); color:var(--dorado-oscuro); pointer-events:none; }
   body.arrastrando #soltar { display:grid; }
-  .aviso { background:var(--suave); color:var(--aviso); padding:8px 16px; font-size:14px; font-weight:600;
-           border-bottom:1px solid var(--borde); }
+  .aviso { background:#efe8d6; color:var(--aviso); padding:8px 24px; font-size:13.5px; border-bottom:1px solid var(--borde); }
+  @media (prefers-color-scheme: dark) { .aviso { background:#241f14; } }
   .aviso:empty { display:none; }
-  .boton { display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid var(--borde);
-           border-radius:8px; background:var(--panel); color:var(--texto); font:inherit; font-size:14px;
+
+  .boton { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px solid var(--borde);
+           border-radius:2px; background:var(--panel); color:var(--texto); font:inherit; font-size:13.5px;
            cursor:pointer; text-decoration:none; white-space:nowrap; }
-  .boton:hover { border-color:var(--acento); }
-  .boton.principal { background:var(--acento); border-color:var(--acento); color:#fff; font-weight:600; }
-  @media (prefers-color-scheme: dark) { .boton.principal { color:#10241a; } }
+  .boton:hover { border-color:var(--dorado); }
+  .boton.principal { background:var(--carbon); border-color:var(--carbon); color:#f4f1ea; font-weight:600; letter-spacing:.3px; }
+  .boton.principal:hover { background:#000; border-color:var(--dorado); color:var(--dorado); }
+  @media (prefers-color-scheme: dark) { .boton.principal { background:var(--dorado); border-color:var(--dorado); color:#1a1a1a; }
+                                        .boton.principal:hover { background:#d9b350; color:#1a1a1a; } }
   button:disabled { opacity:.5; cursor:default; }
 
-  #conversacion { flex:1; overflow-y:auto; padding:16px; }
-  #chat { display:flex; flex-direction:column; gap:12px; max-width:860px; margin:0 auto; }
-  .msg { max-width:88%; padding:10px 13px; border-radius:14px; overflow-wrap:anywhere;
-         background:var(--panel); border:1px solid var(--borde); align-self:flex-start; }
+  /* conversación */
+  #conversacion { flex:1; overflow-y:auto; padding:24px 16px; }
+  #chat { display:flex; flex-direction:column; gap:14px; max-width:900px; margin:0 auto; }
+  .msg { max-width:88%; padding:12px 16px; border-radius:2px; overflow-wrap:anywhere; background:var(--panel);
+         border:1px solid var(--borde); border-left:3px solid var(--dorado); align-self:flex-start;
+         box-shadow:0 1px 2px rgba(0,0,0,.04); }
   .msg .texto { white-space:pre-wrap; }
-  .msg.yo { background:var(--yo); border-color:transparent; align-self:flex-end; white-space:pre-wrap; }
+  .msg.yo { background:var(--yo); color:var(--yo-texto); border-color:var(--yo); align-self:flex-end; white-space:pre-wrap; }
   .msg.ancho { width:100%; max-width:100%; }
-  .msg.espera { color:var(--tenue); }
+  .msg.espera { color:var(--tenue); font-style:italic; }
   .msg.espera::after { content:''; animation: puntos 1.2s steps(4) infinite; }
   @keyframes puntos { 0% { content:''; } 25% { content:'.'; } 50% { content:'..'; } 75% { content:'...'; } }
 
-  /* SQL y filas de cada consulta */
-  details.consulta { margin-top:10px; border:1px solid var(--borde); border-radius:10px; background:var(--fondo); }
-  details.consulta summary { cursor:pointer; padding:6px 10px; font-size:13px; color:var(--tenue); }
+  /* SQL y filas de cada consulta: la tabla con el mismo encabezado del Excel */
+  details.consulta { margin-top:12px; border:1px solid var(--borde); border-radius:2px; background:var(--panel); }
+  details.consulta summary { cursor:pointer; padding:7px 12px; font-size:11.5px; color:var(--tenue);
+                             letter-spacing:1px; text-transform:uppercase; }
   details.consulta.fallo summary { color:var(--error); }
-  details.consulta pre { margin:0; padding:8px 10px; background:var(--codigo); border-top:1px solid var(--borde);
-                         font:12.5px/1.45 ui-monospace, Consolas, monospace; white-space:pre-wrap; }
+  details.consulta pre { margin:0; padding:10px 12px; background:var(--codigo); border-top:1px solid var(--borde);
+                         font:12.5px/1.5 ui-monospace, Consolas, monospace; white-space:pre-wrap; }
   .tabla { overflow-x:auto; border-top:1px solid var(--borde); }
   table { border-collapse:collapse; width:100%; font-size:13px; }
-  th, td { padding:4px 8px; border-bottom:1px solid var(--borde); text-align:left; white-space:nowrap; }
-  th { background:var(--suave); font-weight:600; }
+  th, td { padding:6px 10px; border-bottom:1px solid var(--borde); text-align:left; white-space:nowrap; }
+  th { background:var(--carbon); color:#f4f1ea; font-weight:600; border-bottom:2px solid var(--dorado); }
+  tbody tr:nth-child(even) td { background:var(--franja); }
   td.num, th.num { text-align:right; font-variant-numeric: tabular-nums; }
-  .nota-tabla { padding:4px 10px; font-size:12px; color:var(--tenue); }
+  .nota-tabla { padding:5px 12px; font-size:12px; color:var(--tenue); }
 
   /* archivos adjuntos */
-  .archivos { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-  .archivo { border:1px solid var(--borde); border-radius:10px; background:var(--fondo); overflow:hidden; }
-  .archivo .fila { display:flex; align-items:center; gap:10px; padding:8px 10px; flex-wrap:wrap; }
-  .archivo .ext { flex:none; width:40px; height:40px; border-radius:8px; display:grid; place-items:center;
-                  font-size:11px; font-weight:700; color:#fff; background:var(--acento); }
-  .archivo .ext.pdf { background:#b3261e; }
+  .archivos { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .archivo { border:1px solid var(--borde); border-radius:2px; background:var(--panel); overflow:hidden; }
+  .archivo .fila { display:flex; align-items:center; gap:12px; padding:9px 12px; flex-wrap:wrap; }
+  .archivo .ext { flex:none; width:42px; height:42px; display:grid; place-items:center; font-size:10.5px;
+                  font-weight:700; letter-spacing:.5px; color:var(--dorado); background:var(--carbon); }
+  .archivo .ext.pdf { color:#f4f1ea; background:var(--vino); }
   .archivo .info { flex:1; min-width:140px; }
   .archivo .info b { display:block; font-size:14px; }
-  .archivo .info span { color:var(--tenue); font-size:13px; }
+  .archivo .info span { color:var(--tenue); font-size:12.5px; }
   .archivo .acciones { display:flex; gap:6px; }
   .archivo iframe { display:block; width:100%; height:70vh; border:0; border-top:1px solid var(--borde); background:#fff; }
 
   /* pantalla inicial */
-  .bienvenida { text-align:center; padding:5vh 0 8px; }
-  .bienvenida h1 { font-size:22px; margin:0 0 6px; }
-  .bienvenida p { color:var(--tenue); margin:0 0 20px; }
-  .grupos { display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); text-align:left; }
-  .grupo { background:var(--panel); border:1px solid var(--borde); border-radius:12px; padding:12px; }
-  .grupo h2 { font-size:13px; color:var(--tenue); margin:0 0 8px; font-weight:600; }
-  .grupo button { display:block; width:100%; text-align:left; background:none; border:0; border-radius:8px;
+  .bienvenida { text-align:center; padding:4vh 0 8px; }
+  .bienvenida h1 { font: 600 26px/1.25 var(--serif); margin:0 0 8px; letter-spacing:.2px; }
+  .bienvenida .filete { width:56px; height:2px; background:var(--dorado); margin:0 auto 12px; }
+  .bienvenida p { color:var(--tenue); margin:0 auto 26px; max-width:620px; }
+  .grupos { display:grid; gap:14px; grid-template-columns:repeat(2, 1fr); text-align:left; }
+  .grupos.tres { grid-template-columns:repeat(3, 1fr); margin-top:14px; }
+  @media (max-width: 760px) { .grupos, .grupos.tres { grid-template-columns:1fr; } }
+  .grupo { background:var(--panel); border:1px solid var(--borde); border-top:3px solid var(--borde); border-radius:2px;
+           padding:14px 12px 10px; }
+  .grupo.destacado { border-top-color:var(--dorado); }
+  .grupo h2 { font-size:11px; color:var(--dorado-oscuro); margin:0 0 8px 8px; font-weight:700; letter-spacing:1.3px;
+              text-transform:uppercase; }
+  .grupo button { display:block; width:100%; text-align:left; background:none; border:0; border-radius:2px;
                   padding:6px 8px; color:var(--texto); font:inherit; font-size:14px; cursor:pointer; }
-  .grupo button:hover { background:var(--suave); }
+  .grupo button:hover { background:var(--franja); color:var(--dorado-oscuro); }
 
   /* barra con lo del reto: siempre visible, no usa IA */
-  .reto { display:flex; flex-wrap:wrap; align-items:center; gap:6px; max-width:860px; margin:0 auto 8px; }
-  .reto > span { color:var(--tenue); font-size:12px; font-weight:600; margin-right:2px; }
-  .reto .boton { padding:4px 10px; font-size:13px; border-radius:999px; }
-  .grupo.destacado { border-color:var(--acento); }
+  .reto { display:flex; flex-wrap:wrap; align-items:center; gap:6px; max-width:900px; margin:0 auto 10px; }
+  .reto > span { color:var(--dorado-oscuro); font-size:10.5px; font-weight:700; letter-spacing:1.3px;
+                 text-transform:uppercase; margin-right:2px; }
+  .reto .boton { padding:4px 11px; font-size:12.5px; }
 
-  #pregunta { padding:10px 16px 14px; background:var(--fondo); border-top:1px solid var(--borde); }
-  #pregunta .caja { display:flex; gap:8px; align-items:flex-end; max-width:860px; margin:0 auto; }
+  #pregunta { padding:12px 16px 14px; background:var(--panel); border-top:1px solid var(--borde); }
+  #pregunta .caja { display:flex; gap:8px; align-items:flex-end; max-width:900px; margin:0 auto; }
   #texto { flex:1; min-width:0; resize:none; max-height:160px; padding:10px 12px; border:1px solid var(--borde);
-           border-radius:12px; background:var(--panel); color:var(--texto); font:inherit; }
-  #texto:focus { outline:2px solid var(--acento); outline-offset:-1px; }
-  #pregunta p { max-width:860px; margin:6px auto 0; color:var(--tenue); font-size:12px; text-align:center; }
-  @media (max-width: 560px) { .msg, .msg.ancho { max-width:100%; width:100%; } header .boton span { display:none; }
-                              header { flex-wrap:wrap; } header select { max-width:100%; } }
+           border-radius:2px; background:var(--fondo); color:var(--texto); font:inherit; }
+  #texto:focus { outline:1px solid var(--dorado); border-color:var(--dorado); }
+  #pregunta p { max-width:900px; margin:7px auto 0; color:var(--tenue); font-size:11.5px; text-align:center; }
+  @media (max-width: 640px) { .msg, .msg.ancho { max-width:100%; width:100%; } header .boton span { display:none; }
+                              header { flex-wrap:wrap; padding:10px 16px; } header label { width:100%; }
+                              header select { max-width:none; flex:1; } }
 </style>
 <header>
-  <div class="titulo"><b>Revisión de CFDI</b><span id="cifras">{{ cifras }}</span></div>
+  <div class="marca" aria-hidden="true">CF</div>
+  <div class="titulo"><b>Revisión de CFDI</b><small>Automatización de facturas electrónicas</small><span id="cifras">{{ cifras }}</span></div>
   <label>Cliente <select id="cliente" title="Limita los reportes y las preguntas a un cliente"><option value="">Todos</option></select></label>
   <button class="boton" id="nueva" title="Nueva conversación">＋ <span>Nueva conversación</span></button>
 </header>
 <div class="aviso">{{ aviso }}</div>
-<div id="soltar">Suelta aquí los XML para cargarlos</div>
+<div id="soltar">Suelte aquí los archivos XML para cargarlos</div>
 <input type="file" id="archivos" accept=".xml" multiple hidden data-max-mb="{{ max_mb }}">
 <div id="conversacion"><div id="chat"></div></div>
 <form id="pregunta">
-  <div class="reto" id="reto"><span>Lo del reto (sin IA):</span></div>
+  <div class="reto" id="reto"></div>
   <div class="caja">
-    <textarea id="texto" rows="1" placeholder="Pregunta por las facturas, los proveedores o las incidencias" autocomplete="off"></textarea>
+    <textarea id="texto" rows="1" placeholder="Escriba su consulta sobre facturas, proveedores o incidencias" autocomplete="off"></textarea>
     <button class="boton principal" id="enviar">Enviar</button>
   </div>
-  <p>Preguntas libres con IA ({{ modelo }}): Enter para enviar · Shift+Enter para otra línea · El SQL se ejecuta en solo lectura</p>
+  <p>Consultas con IA ({{ modelo }}) · Enter para enviar, Shift+Enter para nueva línea · El SQL se ejecuta en modo de solo lectura</p>
 </form>
 <script>
 const $ = s => document.querySelector(s);
@@ -126,12 +155,13 @@ const RETO = [['cargar', 'Cargar XML'], ['detalle', 'Detalle'], ['resumen', 'Res
               ['incidencias', 'Incidencias'], ['excel', 'Excel']];
 // lo extra que tampoco usa IA
 const EXTRA = [['subir', 'Subir XML…'], ['clientes', 'Resumen por cliente']];
+const ETIQUETA_RETO = 'Reportes del reto', ETIQUETA_EXTRA = 'Adicional';
 const MAX_MB = Number(document.getElementById('archivos').dataset.maxMb);
 // lo extra: ejemplos de preguntas libres para la IA
 const EJEMPLOS = {
-  'Pregúntale': ['¿Qué proveedor me cobró más IVA?', '¿Cuál fue la factura más alta?', '¿Qué le compré a la constructora?'],
-  'Incidencias': ['¿Qué facturas venían duplicadas?', '¿Por qué hay facturas sin IVA?', '¿Qué archivo venía dañado?'],
-  'PDF': ['Dame el PDF de la factura más alta', 'PDF de las facturas de Mario García', 'PDF de la última factura de septiembre'],
+  'Consultas · IA': ['¿Qué proveedor cobró más IVA?', '¿Cuál fue la factura de mayor monto?', '¿Qué servicios prestó la constructora?'],
+  'Incidencias · IA': ['¿Qué facturas venían duplicadas?', '¿Por qué hay facturas sin IVA?', '¿Qué archivo venía dañado?'],
+  'Documentos · IA': ['PDF de la factura de mayor monto', 'PDF de las facturas de Mario García', 'PDF de la última factura de septiembre'],
 };
 
 // crea un elemento; el texto siempre entra como texto, nunca como HTML
@@ -172,7 +202,7 @@ function celda(v, importe) {
 
 function consulta(c, abierta) {
   if (c.error) return h('details', { class: 'consulta fallo' },
-    h('summary', null, 'Consulta rechazada o con error (el error se le regresó al modelo)'),
+    h('summary', null, 'Consulta rechazada o con error · se devolvió al modelo para corregirla'),
     h('pre', null, (c.sql || '') + '\n\n-- ' + c.error));
   const filas = c.total === 1 ? '1 fila' : `${c.mas ? 'más de ' + (c.total - 1) : c.total} filas`;
   const numerica = c.columnas.map((_, i) => c.filas.length > 0 && typeof c.filas[0][i] === 'number');
@@ -224,16 +254,21 @@ function pintar(m, nuevo) {
 
 function bienvenida() {
   chat.replaceChildren(h('div', { class: 'bienvenida' },
-    h('h1', null, '¿Qué quieres revisar de las facturas?'),
-    h('p', null, 'Usa los botones del reto, o pregunta en español: la IA escribe el SQL, lo ejecuta y te muestra los datos.'),
+    h('h1', null, 'Revisión de facturas electrónicas'),
+    h('div', { class: 'filete' }),
+    h('p', null, 'Genere los reportes de la revisión con los botones, o formule una consulta en lenguaje natural: ' +
+                 'el asistente redacta el SQL, lo ejecuta en modo de solo lectura y muestra los datos que respaldan cada respuesta.'),
     h('div', { class: 'grupos' },
-      h('div', { class: 'grupo destacado' }, h('h2', null, 'Lo del reto (sin IA)'),
+      h('div', { class: 'grupo destacado' }, h('h2', null, ETIQUETA_RETO + ' · sin IA'),
         RETO.map(([accion, etiqueta]) => h('button', { type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta))),
-      h('div', { class: 'grupo' }, h('h2', null, 'Extra (sin IA)'),
+      h('div', { class: 'grupo' }, h('h2', null, ETIQUETA_EXTRA + ' · sin IA'),
         EXTRA.map(([accion, etiqueta]) => h('button', { type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta)),
-        h('p', { style: 'margin:6px 8px 0; font-size:13px; color:var(--tenue)' }, 'También puedes arrastrar XML a cualquier parte de la página.')),
+        h('p', { style: 'margin:6px 8px 0; font-size:12.5px; color:var(--tenue)' },
+          'También puede arrastrar archivos XML a cualquier parte de la página.'))),
+    // las consultas con IA, en su propia fila
+    h('div', { class: 'grupos tres' },
       Object.entries(EJEMPLOS).map(([titulo, lista]) => h('div', { class: 'grupo' },
-        h('h2', null, titulo + ' (IA)'), lista.map(t => h('button', { type: 'button', onclick: () => preguntar(t) }, t)))))));
+        h('h2', null, titulo), lista.map(t => h('button', { type: 'button', onclick: () => preguntar(t) }, t)))))));
 }
 
 function inicio() {
@@ -311,7 +346,7 @@ async function mandar(etiqueta, url, cuerpo) {
   if (!mensajes.length) chat.replaceChildren();
   const mio = { rol: 'yo', texto: etiqueta };
   mensajes.push(mio); guardar(); pintar(mio);
-  const espera = h('div', { class: 'msg espera' }, 'Consultando');
+  const espera = h('div', { class: 'msg espera' }, 'Procesando');
   chat.append(espera); abajo();
   enviar.disabled = true;
   let r;
@@ -325,7 +360,7 @@ async function mandar(etiqueta, url, cuerpo) {
     actualizar(datos);
     mensajes.push(r); guardar();
   } catch (e) {
-    r = { rol: 'ia', texto: 'No se pudo conectar con el bot. ¿Sigue abierto bot.py en la terminal?' };
+    r = { rol: 'ia', texto: 'No fue posible conectar con el servidor. Verifique que bot.py siga en ejecución.' };
   }
   espera.remove();
   const d = pintar(r, true);
@@ -352,9 +387,10 @@ $('#nueva').addEventListener('click', async () => {
   mensajes = []; guardar(); bienvenida(); texto.focus();
 });
 
+$('#reto').append(h('span', null, ETIQUETA_RETO));
 RETO.forEach(([accion, etiqueta]) =>
   $('#reto').append(h('button', { class: 'boton', type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta)));
-$('#reto').append(h('span', { style: 'margin-left:8px' }, 'Extra:'));
+$('#reto').append(h('span', { style: 'margin-left:10px' }, ETIQUETA_EXTRA));
 EXTRA.forEach(([accion, etiqueta]) =>
   $('#reto').append(h('button', { class: 'boton', type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta)));
 estado();

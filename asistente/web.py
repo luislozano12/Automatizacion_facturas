@@ -115,7 +115,7 @@ def reto_cargar(cliente):
 def reto_detalle(cliente):
     columnas, filas = reportes.detalle(cliente)
     if not filas:
-        return de_quien(cliente) + "No hay facturas. Usa **Cargar XML** o arrastra archivos aquí.", [], []
+        return de_quien(cliente) + "No hay facturas. Use **Cargar XML** o arrastre los archivos a esta página.", [], []
     # en la página bastan estas columnas; el Excel trae todas
     orden = [3, 0, 1, 2, 4, 5, 6, 8, 12]
     vista = [[f[i].replace("T", " ") if i == 3 else f[i] for i in orden] for f in filas]
@@ -127,7 +127,7 @@ def reto_detalle(cliente):
 def reto_resumen(cliente):
     columnas, filas = reportes.resumen(cliente)
     if not filas:
-        return de_quien(cliente) + "No hay facturas. Usa **Cargar XML** o arrastra archivos aquí.", [], []
+        return de_quien(cliente) + "No hay facturas. Use **Cargar XML** o arrastre los archivos a esta página.", [], []
     texto = (de_quien(cliente) + f"**{len(filas)} proveedores**, de mayor a menor total facturado. El que más "
              f"facturó fue **{filas[0][1]}** con {dinero(filas[0][5])}. Total general "
              f"{dinero(sum(f[5] for f in filas))}, IVA {dinero(sum(f[4] for f in filas))}.")
@@ -157,8 +157,8 @@ def reto_excel(cliente):
 def reto_clientes(_cliente):
     columnas, filas = reportes.resumen_clientes()
     if not filas:
-        return "No hay facturas. Usa **Cargar XML** o arrastra archivos aquí.", [], []
-    texto = (f"**{len(filas)} clientes** con facturas, de mayor a menor total. Elige uno arriba, en **Cliente**, "
+        return "No hay facturas. Use **Cargar XML** o arrastre los archivos a esta página.", [], []
+    texto = (f"**{len(filas)} clientes** con facturas, de mayor a menor total. Elija uno en **Cliente**, en la parte superior, "
              "para ver solo sus reportes y que la IA conteste solo con sus facturas.")
     return texto, [tabla("Resumen por cliente", columnas, filas)], []
 
@@ -223,7 +223,7 @@ def subir():
 
 @app.errorhandler(413)
 def muy_grande(_e):
-    return jsonify(texto=f"La subida pasa de {MAX_SUBIDA_MB} MB; manda los XML en partes.", consultas=[],
+    return jsonify(texto=f"La subida pasa de {MAX_SUBIDA_MB} MB; envíe los XML en partes.", consultas=[],
                    adjuntos=[]), 413
 
 
