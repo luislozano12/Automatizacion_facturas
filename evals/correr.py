@@ -72,7 +72,7 @@ def preparar_base():
 
 
 def main():
-    sys.stdout.reconfigure(errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--caso", help="correr solo el caso con ese id")
     p.add_argument("--veces", type=int, default=1, help="veces que se repite cada caso")

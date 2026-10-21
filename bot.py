@@ -17,7 +17,7 @@ from revision.base import cargar
 
 
 def main():
-    sys.stdout.reconfigure(errors="replace")  # que un carácter raro no truene en la consola de Windows
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # que un carácter raro no truene en la consola de Windows
     try:
         cargar()
     except FileNotFoundError as e:

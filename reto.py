@@ -18,7 +18,7 @@ from revision.reportes import excel
 
 
 def main(argv=None):
-    sys.stdout.reconfigure(errors="replace")  # que un carácter raro no truene en la consola de Windows
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # que un carácter raro no truene en la consola de Windows
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("carpeta", nargs="?", default=config.CFDIS, help="carpeta con los XML (por omisión cfdis/)")
     a = p.parse_args(argv)

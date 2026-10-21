@@ -1,8 +1,8 @@
-2026-10-20 23:11:56 | INFO    | Carpeta cfdis: 18 archivos XML
-2026-10-20 23:11:56 | ERROR   | factura_04.xml | Duplicada | El UUID C0433CBD-7DAB-E929-C4A3-34BFC6CD75E9 ya se cargó desde factura_03.xml
-2026-10-20 23:11:56 | ERROR   | factura_11.xml | Duplicada | El UUID 7608D942-5D11-1A9D-5E6C-9992B5FB12E0 ya se cargó desde factura_10.xml
-2026-10-20 23:11:56 | AVISO   | factura_12.xml | IVA en cero | IVA a tasa 0% o exento
-2026-10-20 23:11:56 | AVISO   | factura_13.xml | IVA en cero | IVA a tasa 0% o exento
-2026-10-20 23:11:56 | ERROR   | factura_19.xml | XML dañado | El XML está mal formado o incompleto (unclosed token: line 6, column 4)
-2026-10-20 23:11:56 | ERROR   | factura_20.xml | No es CFDI | El elemento raíz es <Pedido>; se esperaba cfdi:Comprobante 3.3 o 4.0
-2026-10-20 23:11:56 | INFO    | Cargadas: 14 | Con error (no cargadas): 4 | Avisos: 2 | Facturas en la base: 14
+2026-10-21 09:33:44 | INFO    | Carpeta cfdis: 18 archivos XML
+2026-10-21 09:33:44 | ERROR   | factura_04.xml | Duplicada | El UUID C0433CBD-7DAB-E929-C4A3-34BFC6CD75E9 ya se cargó desde factura_03.xml
+2026-10-21 09:33:44 | ERROR   | factura_11.xml | Duplicada | El UUID 7608D942-5D11-1A9D-5E6C-9992B5FB12E0 ya se cargó desde factura_10.xml
+2026-10-21 09:33:44 | AVISO   | factura_12.xml | IVA en cero | IVA a tasa 0% o exento
+2026-10-21 09:33:44 | AVISO   | factura_13.xml | IVA en cero | IVA a tasa 0% o exento
+2026-10-21 09:33:44 | ERROR   | factura_19.xml | XML dañado | El XML está mal formado o incompleto (unclosed token: line 6, column 4)
+2026-10-21 09:33:44 | ERROR   | factura_20.xml | No es CFDI | El elemento raíz es <Pedido>; se esperaba cfdi:Comprobante 3.3 o 4.0
+2026-10-21 09:33:44 | INFO    | Cargadas: 14 | Con error (no cargadas): 4 | Avisos: 2 | Facturas en la base: 14
