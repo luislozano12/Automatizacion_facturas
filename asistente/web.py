@@ -9,6 +9,7 @@ La página está en plantillas/chat.html. Se abre con  python bot.py
 """
 import io
 import os
+import re
 import threading
 import webbrowser
 from collections import deque
@@ -214,8 +215,10 @@ def subir():
             destino = carpeta / f"{Path(nombre).stem}_{n}.xml"
         a.save(destino)
     with candado:
-        c = cargar(carpeta)
+        c = cargar(carpeta, salida=carpeta)  # su log queda junto a los XML; no toca salida/incidencias.log del reto
     texto, consultas, adjuntos = resultado_carga(c, carpeta, cliente)
+    adjuntos = [{**LOG, "nota": "Registro de esta subida", "url": f"/subidos/{carpeta.name}/incidencias.log"}
+                if a is LOG else a for a in adjuntos]
     if ignorados:
         texto += f" No se leyeron porque no son .xml: {', '.join(ignorados)}."
     return jsonify(texto=texto, consultas=consultas, adjuntos=adjuntos, **estado(cliente))
@@ -300,6 +303,16 @@ def reporte():
 @app.get("/incidencias.log")
 def log():
     ruta = config.SALIDA / "incidencias.log"
+    if not ruta.is_file():
+        abort(404)
+    return send_file(ruta, mimetype="text/plain; charset=utf-8")
+
+
+@app.get("/subidos/<subida>/incidencias.log")
+def log_subida(subida):
+    if not re.fullmatch(r"\d{8}-\d{6}-\d{6}", subida):  # el nombre de carpeta que crea subir(), nada más
+        abort(404)
+    ruta = config.SALIDA / "subidos" / subida / "incidencias.log"
     if not ruta.is_file():
         abort(404)
     return send_file(ruta, mimetype="text/plain; charset=utf-8")

@@ -24,7 +24,8 @@ def main(argv=None):
     a = p.parse_args(argv)
     try:
         carga = cargar(a.carpeta)
-        destino = excel()
+        # el Excel lleva solo lo de esta carpeta, aunque la base tenga además lo que se subió desde el bot
+        destino = excel(carpeta=a.carpeta)
     except FileNotFoundError as e:
         sys.exit(str(e))
     except ValueError as e:  # ninguna factura válida

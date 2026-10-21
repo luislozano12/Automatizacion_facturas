@@ -91,3 +91,10 @@ def test_reto_sin_carpeta(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DB", tmp_path / "facturas.db")
     with pytest.raises(SystemExit, match="No existe la carpeta"):
         reto.main([str(tmp_path / "no-existe")])
+
+
+def test_excel_del_reto_solo_con_su_carpeta(dos_clientes):
+    # la base tiene además las facturas de otro cliente (subidas desde el bot), pero el Excel del reto no
+    wb = load_workbook(reportes.excel(dos_clientes / "r.xlsx", carpeta=config.CFDIS))
+    assert wb["Detalle"].max_row == 19  # título (3 filas) + encabezado + 14 facturas + total
+    assert "Carpeta: cfdis" in wb["Detalle"]["A2"].value

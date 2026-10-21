@@ -1,7 +1,8 @@
 """Los reportes: detalle, resumen por proveedor, resumen por cliente e incidencias, y el Excel que los junta.
 
 Cada reporte devuelve (columnas, filas); los usan el Excel y el bot. `cliente` (RFC receptor) limita el reporte
-a las facturas de ese cliente de KMG; sin él se incluyen todas.
+a las facturas de ese cliente de KMG, y `carpeta` a las que se cargaron de esa carpeta; sin ellos se incluye todo
+lo que hay en la base.
 """
 from datetime import datetime
 from pathlib import Path
@@ -13,15 +14,28 @@ from .base import SIN_DATOS, leer, ruta_guardada
 INGRESO = "tipo='I'"
 
 
-def donde(cliente, *condiciones):
-    """WHERE y parámetros con las condiciones dadas y, si hay cliente, el filtro por receptor."""
-    condiciones = list(condiciones) + (["receptor_rfc=?"] if cliente else [])
-    return ("WHERE " + " AND ".join(condiciones) if condiciones else ""), ((cliente,) if cliente else ())
+def de_carpeta(carpeta):
+    """Condición y parámetros para quedarse con lo que se cargó de esa carpeta (columna archivo)."""
+    prefijo = ruta_guardada(carpeta) + "/"
+    return "substr(archivo, 1, ?) = ?", [len(prefijo), prefijo]
 
 
-def detalle(cliente=None):
+def donde(cliente, *condiciones, carpeta=None):
+    """WHERE y parámetros con las condiciones dadas y, si los hay, los filtros por receptor y por carpeta."""
+    condiciones, p = list(condiciones), []
+    if cliente:
+        condiciones.append("receptor_rfc=?")
+        p.append(cliente)
+    if carpeta:
+        condicion, valores = de_carpeta(carpeta)
+        condiciones.append(condicion)
+        p += valores
+    return ("WHERE " + " AND ".join(condiciones) if condiciones else ""), p
+
+
+def detalle(cliente=None, carpeta=None):
     """Una fila por factura."""
-    w, p = donde(cliente)
+    w, p = donde(cliente, carpeta=carpeta)
     filas = leer("SELECT uuid, emisor_rfc, emisor_nombre, fecha, subtotal, iva, total, receptor_rfc, receptor_nombre, "
                  f"serie, folio, moneda, archivo FROM facturas {w} ORDER BY fecha, uuid", p)
     return (["UUID", "RFC emisor", "Nombre emisor", "Fecha", "Subtotal", "IVA trasladado", "Total",
@@ -29,9 +43,9 @@ def detalle(cliente=None):
             [(*f[:12], Path(f[12]).name) for f in filas])
 
 
-def resumen(cliente=None):
+def resumen(cliente=None, carpeta=None):
     """Total facturado e IVA por RFC emisor, de mayor a menor."""
-    w, p = donde(cliente, INGRESO)
+    w, p = donde(cliente, INGRESO, carpeta=carpeta)
     return (["RFC emisor", "Nombre emisor", "Facturas", "Subtotal", "IVA trasladado", "Total facturado"],
             leer("SELECT emisor_rfc, MAX(emisor_nombre), COUNT(*), ROUND(SUM(subtotal), 2), ROUND(SUM(iva), 2), "
                  f"ROUND(SUM(total), 2) FROM facturas {w} GROUP BY emisor_rfc ORDER BY 6 DESC", p))
@@ -57,10 +71,10 @@ def incidencias(cliente=None, carpeta=None, sin_dueno=True):
         condiciones.append(f"(uuid IS NULL OR {suyas})" if sin_dueno else suyas)
         p.append(cliente)
     if carpeta:
-        prefijo = ruta_guardada(carpeta) + "/"
-        condiciones.append("substr(archivo, 1, ?) = ?")
-        p += [len(prefijo), prefijo]
-    filtro = "WHERE " + " AND ".join(condiciones) if condiciones else ""
+        condicion, valores = de_carpeta(carpeta)
+        condiciones.append(condicion)
+        p += valores
+    filtro ="WHERE " + " AND ".join(condiciones) if condiciones else ""
     filas = leer(f"SELECT archivo, nivel, tipo, detalle FROM incidencias {filtro} ORDER BY nivel DESC, archivo", p)
     return ["Archivo", "Nivel", "Tipo", "Detalle"], [(Path(f[0]).name, *f[1:]) for f in filas]  # ERROR antes que AVISO
 
@@ -81,15 +95,17 @@ DINERO = '"$"#,##0.00'
 FECHA = "dd/mm/yyyy hh:mm"
 
 
-def libro(cliente=None):
+def libro(cliente=None, carpeta=None):
     """El Excel de revisión (hojas "Detalle" y "Resumen por proveedor"), o None si no hay facturas."""
     from openpyxl import Workbook
 
-    columnas, facturas = detalle(cliente)
+    columnas, facturas = detalle(cliente, carpeta)
     if not facturas:
         return None
     nombre_cliente = f"{facturas[0][8] or cliente} ({cliente})" if cliente else "Todos"
     generado = f"Generado el {datetime.now():%d/%m/%Y %H:%M} · Cliente: {nombre_cliente}"
+    if carpeta:
+        generado += f" · Carpeta: {ruta_guardada(carpeta)}"
 
     wb = Workbook()
     wb.properties.title = "Revisión de CFDI"
@@ -105,7 +121,7 @@ def libro(cliente=None):
     hoja(wb.active, "Detalle", "Revisión de CFDI · Detalle de facturas",
          f"{generado} · {len(filas)} facturas", columnas, filas, dinero=(4, 5, 6), fecha=3, totales=(4, 5, 6))
 
-    columnas, proveedores = resumen(cliente)
+    columnas, proveedores = resumen(cliente, carpeta)
     hoja(wb.create_sheet(), "Resumen por proveedor", "Revisión de CFDI · Resumen por proveedor",
          f"{generado} · {len(proveedores)} proveedores · de mayor a menor total facturado",
          columnas, proveedores, dinero=(3, 4, 5), totales=(2, 3, 4, 5))
@@ -199,10 +215,10 @@ def hoja(ws, nombre, titulo, subtitulo, columnas, filas, dinero=(), fecha=None, 
     ws.oddFooter.right.text = "Página &P de &N"  # &P y &N son códigos de Excel: página actual y total
 
 
-def excel(destino=None, cliente=None):
+def excel(destino=None, cliente=None, carpeta=None):
     """Guarda el Excel y devuelve su ruta. Lanza ValueError si no hay facturas y PermissionError si está abierto."""
     destino = Path(destino or config.SALIDA / "reporte_cfdi.xlsx")
-    wb = libro(cliente)
+    wb = libro(cliente, carpeta)
     if not wb:
         raise ValueError(SIN_DATOS)
     destino.parent.mkdir(parents=True, exist_ok=True)

@@ -189,7 +189,7 @@ def test_subir_nombre_peligroso(cliente):
     xml = (EJEMPLOS / "otro_cliente_01.xml").read_bytes()
     cliente.post("/subir", data={"xml": [(BytesIO(xml), "../../../fuera.xml")]}, headers={"X-Bot": "1"})
     (carpeta,) = (config.SALIDA / "subidos").iterdir()
-    assert [p.name for p in carpeta.iterdir()] == ["fuera.xml"]  # se guardó dentro de su carpeta
+    assert sorted(p.name for p in carpeta.iterdir()) == ["fuera.xml", "incidencias.log"]  # dentro de su carpeta
     assert not (config.SALIDA.parent / "fuera.xml").exists()
 
 
@@ -199,3 +199,13 @@ def test_busqueda_sin_acentos(salida):
     sql = "SELECT COUNT(*) FROM facturas WHERE norm(emisor_nombre) LIKE '%' || norm('Logísticos Tapatíos') || '%'"
     assert con.execute(sql).fetchone() == (3,)
     con.close()
+
+
+def test_subida_no_toca_el_log_del_reto(cliente):
+    log_reto = (config.SALIDA / "incidencias.log").read_text(encoding="utf-8")
+    archivos = [(p.open("rb"), p.name) for p in sorted(EJEMPLOS.glob("*.xml"))]
+    r = cliente.post("/subir", data={"xml": archivos}, headers={"X-Bot": "1"}).get_json()
+    assert (config.SALIDA / "incidencias.log").read_text(encoding="utf-8") == log_reto
+    url = next(a["url"] for a in r["adjuntos"] if a["nombre"] == "incidencias.log")
+    assert url.startswith("/subidos/") and b"reenvio_factura_05.xml" in cliente.get(url).data
+    assert cliente.get("/subidos/..%2F..%2Fx/incidencias.log").status_code == 404
