@@ -1,5 +1,6 @@
 # el reto (reto.py)
 openpyxl>=3.1
+defusedxml>=0.7
 # el bot (bot.py)
 flask>=2.3
 reportlab>=4.0

@@ -17,6 +17,13 @@ def salida(tmp_path, monkeypatch):
 
 
 @pytest.fixture
+def dos_clientes(salida):
+    """Además de cfdis/, los XML de ejemplos/otro_cliente/: dos facturas de otro receptor y un duplicado."""
+    cargar(config.RAIZ / "ejemplos" / "otro_cliente")
+    return salida
+
+
+@pytest.fixture
 def consulta(salida):
     """Función que ejecuta un SQL sobre la base temporal y devuelve las filas."""
     def ejecutar(sql):

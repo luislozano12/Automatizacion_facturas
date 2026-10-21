@@ -4,6 +4,7 @@ docs/Instrucciones_Prueba_Tecnica_KMG.pdf
 # se generan con los comandos; el Excel y el log sí se suben como entregables
 salida/facturas.db
 salida/pdf/
+salida/subidos/
 __pycache__/
 .pytest_cache/
 .venv/

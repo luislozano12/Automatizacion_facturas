@@ -5,7 +5,7 @@ El proyecto tiene dos partes:
 | | Qué hace | Cómo se corre |
 |---|---|---|
 | **El reto** | Lee la carpeta `cfdis/`, extrae los datos de cada factura, detecta duplicados y archivos dañados sin detenerse, y genera el Excel y el log de incidencias. | `python reto.py` |
-| **El extra (bot)** | Un chat en el navegador que hace lo mismo que el reto con botones (sin IA) y, además, responde preguntas en lenguaje natural convirtiéndolas a SQL y genera el PDF de cualquier factura. | `python bot.py` |
+| **El extra (bot)** | Un chat en el navegador que hace lo mismo que el reto con botones (sin IA) y, además: separa por cliente, recibe XML arrastrados, responde preguntas en lenguaje natural convirtiéndolas a SQL y genera el PDF de cualquier factura. | `python bot.py` |
 
 ## Instalación
 
@@ -55,12 +55,39 @@ python bot.py        # carga cfdis/ y abre http://localhost:5000
 
 - **Lo del reto, con botones y sin IA:** Cargar XML, Detalle, Resumen por proveedor, Incidencias y Excel.
   Las respuestas salen directo de la base; funcionan aunque no haya llave de OpenAI.
+- **Separar por cliente:** KM&G revisa las facturas *de sus clientes*, así que el receptor de cada CFDI es
+  el cliente. El selector **Cliente** del encabezado limita a ese cliente los reportes, el Excel y las
+  preguntas a la IA; **Resumen por cliente** compara a todos.
+- **Subir XML:** se arrastran a la página (o con **Subir XML…**). Cada subida se guarda en
+  `salida/subidos/<fecha y hora>/` y se carga con las mismas validaciones; un UUID que ya estaba en la base
+  sale como duplicado.
 - **Preguntas libres con IA:** "¿qué proveedor me cobró más IVA?", "¿qué le compré a la constructora?".
   El modelo escribe el SQL y cada respuesta lo muestra junto con sus filas. Recuerda la conversación
   ("¿y su PDF?").
 - **PDF de las facturas:** "dame el PDF de la factura más alta" lo adjunta para verlo o descargarlo.
 
 Solo escucha en `127.0.0.1`, es decir, solo es accesible desde la misma computadora.
+
+**Para probar el segundo cliente:** todos los XML de la prueba son del mismo receptor, así que
+`ejemplos/otro_cliente/` trae tres XML ficticios armados a partir de ellos: dos facturas para
+"OTRO CLIENTE DEMO" y un reenvío de `factura_05` que debe salir como duplicado. Arrástralos al chat.
+
+### ¿Cómo sé que la IA contesta bien?
+
+```bash
+python evals/correr.py            # 17 preguntas con respuesta conocida
+python evals/correr.py --veces 3  # cada una 3 veces: el modelo no siempre contesta igual
+```
+
+`evals/casos.json` tiene preguntas cuyas respuestas se calcularon con SQL (totales, el proveedor con más IVA,
+la persona física, los archivos duplicados, qué no debe ver con un cliente elegido, el PDF correcto, una
+pregunta fuera de tema…). El script las hace al modelo real sobre una base temporal y revisa cada respuesta;
+el detalle (respuesta, SQL y fallas) queda en `evals/resultados/`.
+
+La primera corrida dio **14/17**, y las tres fallas eran reales: la más grave, "Servicios Logísticos Tapatíos
+te mandó **0** facturas" cuando son 3, porque el modelo buscó el nombre con acentos y en la base viene sin
+ellos. Se corrigió con una función `norm()` en SQL que ignora acentos y mayúsculas, y con reglas más claras
+para el modelo; los tres casos pasaron después.
 
 ## Estructura
 
@@ -78,9 +105,11 @@ Automatizacion_facturas/
 │   ├── preguntas.py         lenguaje natural → SQL, y las herramientas que puede usar el modelo
 │   ├── pdf.py               representación impresa del CFDI (con QR de verificación del SAT)
 │   └── plantillas/chat.html página del chat
+├── evals/                   evaluaciones de la IA: casos.json, correr.py y resultados/
 ├── cfdis/                   XML de entrada
-├── salida/                  reporte_cfdi.xlsx, incidencias.log, facturas.db y pdf/
-├── tests/                   test_reto.py y test_bot.py, con los mismos XML de cfdis/
+├── ejemplos/otro_cliente/   XML ficticios de un segundo cliente, para probar el filtro y la subida
+├── salida/                  reporte_cfdi.xlsx, incidencias.log, facturas.db, pdf/ y subidos/
+├── tests/                   test_reto.py, test_bot.py y test_evals.py
 └── docs/                    instrucciones de la prueba (no se suben al repositorio)
 ```
 
@@ -127,7 +156,18 @@ la base. Para `consultar`, el modelo recibe el esquema y escribe SQL; el program
 3. si la consulta falla, le regresa el error al modelo para que la corrija,
 4. muestra siempre el SQL ejecutado junto con el resultado, para poder auditarlo.
 
-Al modelo solo se le envían el esquema y los resultados de las consultas, no los XML completos.
+Al modelo solo se le envían el esquema y los resultados de las consultas, no los XML completos. La base
+guarda las rutas relativas al proyecto (`cfdis/factura_01.xml`), así que tampoco viajan rutas personales.
+
+**Aislamiento por cliente.** Con un cliente elegido, las consultas de la IA corren sobre vistas temporales
+que solo tienen sus facturas, y el autorizador de SQLite prohíbe leer las tablas originales
+(`main.facturas`): aunque el modelo "olvide" filtrar o lo intente a propósito, no puede ver datos de otro
+cliente. El PDF tampoco se entrega si la factura es de otro cliente.
+
+**XML subidos.** Se leen con `defusedxml`, que rechaza XML maliciosos (entidades que se expanden sin fin,
+referencias a archivos externos). El nombre del archivo se limpia para que no pueda escribir fuera de su
+carpeta, hay un límite de 20 MB por subida, y la subida exige una cabecera propia que el navegador no deja
+mandar desde otra página sin permiso, así que ningún sitio ajeno puede subir archivos al bot.
 
 **PDF.** Es una representación impresa generada desde el XML; no sustituye al XML timbrado.
 
@@ -135,4 +175,5 @@ Al modelo solo se le envían el esquema y los resultados de las consultas, no lo
 
 - Validar el XML contra el XSD del SAT y verificar la vigencia de cada UUID en el servicio del SAT.
 - Clasificar el gasto por categoría con IA a partir de la descripción de los conceptos.
-- Subir XML desde el chat, y llevar el bot a WhatsApp o Telegram.
+- Usuarios con permisos por cliente (hoy el bot es local y de un solo usuario).
+- Llevar el bot a WhatsApp o Telegram.

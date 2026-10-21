@@ -17,7 +17,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from revision import config
-from revision.base import leer
+from revision.base import leer, ruta_real
 
 TIPOS = {"I": "FACTURA", "E": "NOTA DE CRÉDITO", "P": "COMPLEMENTO DE PAGO", "T": "TRASLADO", "N": "NÓMINA"}
 IMPUESTOS = {"001": "ISR", "002": "IVA", "003": "IEPS"}
@@ -271,6 +271,6 @@ def generar_pdf(uuid, carpeta=None):
     carpeta = Path(carpeta or config.SALIDA / "pdf")
     carpeta.mkdir(parents=True, exist_ok=True)
     destino = carpeta / ("_".join(x for x in (folio, uuid) if x) + ".pdf")
-    generar(archivo, destino)
+    generar(ruta_real(archivo), destino)
     return destino
 

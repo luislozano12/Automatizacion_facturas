@@ -28,6 +28,7 @@ def conectar():
         CREATE TABLE IF NOT EXISTS incidencias(
             id INTEGER PRIMARY KEY AUTOINCREMENT, archivo TEXT, nivel TEXT, tipo TEXT, detalle TEXT, uuid TEXT);
         CREATE INDEX IF NOT EXISTS ix_emisor ON facturas(emisor_rfc);
+        CREATE INDEX IF NOT EXISTS ix_receptor ON facturas(receptor_rfc);
         CREATE INDEX IF NOT EXISTS ix_con ON conceptos(uuid);
         """
     )
@@ -55,6 +56,24 @@ def abrir_log(salida):
     log.addHandler(archivo)
     log.addHandler(consola)
     return archivo
+
+
+def ruta_guardada(xml):
+    """Cómo se guarda la ruta de un XML en la base: relativa al proyecto si está dentro de él (cfdis/factura_01.xml).
+
+    Así la base no lleva rutas personales (C:/Users/...), que la IA vería y mandaría a OpenAI, y sigue sirviendo
+    si se mueve la carpeta del proyecto.
+    """
+    ruta = Path(xml).resolve()
+    try:
+        return ruta.relative_to(config.RAIZ).as_posix()
+    except ValueError:
+        return ruta.as_posix()
+
+
+def ruta_real(guardada):
+    """La ruta en disco de un XML guardado con ruta_guardada()."""
+    return config.RAIZ / guardada
 
 
 def incidencia(con, ruta, nivel, tipo, detalle, uuid=None):
@@ -85,7 +104,7 @@ def cargar(carpeta=None, salida=None):
     con = conectar()
     cargadas = errores = avisos = 0
     for xml in archivos:
-        ruta = str(xml.resolve())
+        ruta = ruta_guardada(xml)
         # lo que se haya cargado antes de este archivo se reemplaza por lo que diga ahora
         con.execute("DELETE FROM conceptos WHERE uuid IN (SELECT uuid FROM facturas WHERE archivo=?)", (ruta,))
         con.execute("DELETE FROM facturas WHERE archivo=?", (ruta,))

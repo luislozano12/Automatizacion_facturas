@@ -1,7 +1,12 @@
 """Lectura y validación de un XML de CFDI (3.3 o 4.0)."""
 import re
-import xml.etree.ElementTree as ET
 from decimal import Decimal, InvalidOperation
+from xml.etree.ElementTree import ParseError
+
+# defusedxml rechaza los XML maliciosos (entidades que se expanden sin fin, referencias a archivos externos);
+# importa porque el bot acepta XML subidos desde el navegador
+from defusedxml import DefusedXmlException
+from defusedxml.ElementTree import parse
 
 NS_CFDI = {"http://www.sat.gob.mx/cfd/3", "http://www.sat.gob.mx/cfd/4"}  # CFDI 3.3 y 4.0
 RFC = re.compile(r"^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$")  # 3 letras = persona moral, 4 = persona física
@@ -47,9 +52,11 @@ def suma(valores):
 def leer_cfdi(path):
     """(factura, conceptos, avisos) de un XML. Lanza Invalido si no se puede cargar."""
     try:
-        root = ET.parse(path).getroot()
-    except ET.ParseError as e:
+        root = parse(path).getroot()
+    except ParseError as e:
         raise Invalido("XML dañado", f"El XML está mal formado o incompleto ({e})")
+    except DefusedXmlException as e:
+        raise Invalido("XML no permitido", f"El XML trae construcciones inseguras ({type(e).__name__})")
     if local(root.tag) != "Comprobante" or espacio(root.tag) not in NS_CFDI:
         raise Invalido("No es CFDI", f"El elemento raíz es <{local(root.tag)}>; se esperaba cfdi:Comprobante 3.3 o 4.0")
     timbre = next((e.attrib for e in root.iter() if local(e.tag) == "TimbreFiscalDigital"), {})
@@ -78,6 +85,9 @@ def leer_cfdi(path):
     rfc = emisor["Rfc"].strip().upper()
     if not RFC.match(rfc):
         avisos.append(("RFC inválido", f"El RFC del emisor «{rfc}» no tiene el formato del SAT"))
+    rfc_receptor = (receptor.get("Rfc") or "").strip().upper()
+    if not RFC.match(rfc_receptor):  # el receptor es el cliente de KMG: sin él la factura no se puede asignar
+        avisos.append(("RFC receptor inválido", f"El RFC del receptor «{rfc_receptor}» falta o no tiene el formato del SAT"))
     esperado = (subtotal - descuento + suma(dec(t.get("Importe")) for t in traslados) - (retenciones or 0)
                 + suma(dec(x.get("TotaldeTraslados")) for x in locales)
                 - suma(dec(x.get("TotaldeRetenciones")) for x in locales))
@@ -98,7 +108,7 @@ def leer_cfdi(path):
         "uuid": uuid, "serie": a.get("Serie"), "folio": a.get("Folio"), "fecha": a["Fecha"], "tipo": tipo,
         "moneda": a.get("Moneda"), "subtotal": float(subtotal), "descuento": float(descuento), "iva": float(iva),
         "retenciones": float(retenciones or 0), "total": float(total), "emisor_rfc": rfc,
-        "emisor_nombre": emisor.get("Nombre"), "receptor_rfc": receptor.get("Rfc"),
+        "emisor_nombre": emisor.get("Nombre"), "receptor_rfc": rfc_receptor or None,
         "receptor_nombre": receptor.get("Nombre"),
     }
     conceptos = [(c.get("ClaveProdServ"), c.get("Descripcion"), float(dec(c.get("Cantidad")) or 0),

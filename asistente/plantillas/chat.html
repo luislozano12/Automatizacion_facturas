@@ -19,6 +19,13 @@
   header .titulo { flex:1; min-width:0; }
   header .titulo b { display:block; }
   header .titulo span { color:var(--tenue); font-size:13px; }
+  header label { display:flex; align-items:center; gap:6px; color:var(--tenue); font-size:13px; }
+  header select { max-width:260px; padding:6px 8px; border:1px solid var(--borde); border-radius:8px;
+                  background:var(--panel); color:var(--texto); font:inherit; font-size:14px; }
+  /* zona para soltar XML: cubre la página mientras se arrastran archivos */
+  #soltar { position:fixed; inset:0; z-index:10; display:none; place-items:center; background:rgba(31,122,77,.18);
+            border:3px dashed var(--acento); font-size:20px; font-weight:700; color:var(--acento); pointer-events:none; }
+  body.arrastrando #soltar { display:grid; }
   .aviso { background:var(--suave); color:var(--aviso); padding:8px 16px; font-size:14px; font-weight:600;
            border-bottom:1px solid var(--borde); }
   .aviso:empty { display:none; }
@@ -90,13 +97,17 @@
            border-radius:12px; background:var(--panel); color:var(--texto); font:inherit; }
   #texto:focus { outline:2px solid var(--acento); outline-offset:-1px; }
   #pregunta p { max-width:860px; margin:6px auto 0; color:var(--tenue); font-size:12px; text-align:center; }
-  @media (max-width: 560px) { .msg, .msg.ancho { max-width:100%; width:100%; } header .boton span { display:none; } }
+  @media (max-width: 560px) { .msg, .msg.ancho { max-width:100%; width:100%; } header .boton span { display:none; }
+                              header { flex-wrap:wrap; } header select { max-width:100%; } }
 </style>
 <header>
   <div class="titulo"><b>Revisión de CFDI</b><span id="cifras">{{ cifras }}</span></div>
+  <label>Cliente <select id="cliente" title="Limita los reportes y las preguntas a un cliente"><option value="">Todos</option></select></label>
   <button class="boton" id="nueva" title="Nueva conversación">＋ <span>Nueva conversación</span></button>
 </header>
 <div class="aviso">{{ aviso }}</div>
+<div id="soltar">Suelta aquí los XML para cargarlos</div>
+<input type="file" id="archivos" accept=".xml" multiple hidden data-max-mb="{{ max_mb }}">
 <div id="conversacion"><div id="chat"></div></div>
 <form id="pregunta">
   <div class="reto" id="reto"><span>Lo del reto (sin IA):</span></div>
@@ -113,6 +124,9 @@ const GUARDADO = 'conversacion-cfdi';
 // lo que pide el reto: respuestas fijas del servidor, sin IA
 const RETO = [['cargar', 'Cargar XML'], ['detalle', 'Detalle'], ['resumen', 'Resumen por proveedor'],
               ['incidencias', 'Incidencias'], ['excel', 'Excel']];
+// lo extra que tampoco usa IA
+const EXTRA = [['subir', 'Subir XML…'], ['clientes', 'Resumen por cliente']];
+const MAX_MB = Number(document.getElementById('archivos').dataset.maxMb);
 // lo extra: ejemplos de preguntas libres para la IA
 const EJEMPLOS = {
   'Pregúntale': ['¿Qué proveedor me cobró más IVA?', '¿Cuál fue la factura más alta?', '¿Qué le compré a la constructora?'],
@@ -215,6 +229,9 @@ function bienvenida() {
     h('div', { class: 'grupos' },
       h('div', { class: 'grupo destacado' }, h('h2', null, 'Lo del reto (sin IA)'),
         RETO.map(([accion, etiqueta]) => h('button', { type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta))),
+      h('div', { class: 'grupo' }, h('h2', null, 'Extra (sin IA)'),
+        EXTRA.map(([accion, etiqueta]) => h('button', { type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta)),
+        h('p', { style: 'margin:6px 8px 0; font-size:13px; color:var(--tenue)' }, 'También puedes arrastrar XML a cualquier parte de la página.')),
       Object.entries(EJEMPLOS).map(([titulo, lista]) => h('div', { class: 'grupo' },
         h('h2', null, titulo + ' (IA)'), lista.map(t => h('button', { type: 'button', onclick: () => preguntar(t) }, t)))))));
 }
@@ -226,8 +243,68 @@ function inicio() {
   abajo();
 }
 
-function preguntar(pregunta) { return mandar(pregunta, '/preguntar', { pregunta }); }
-function reto(accion, etiqueta) { return mandar(etiqueta, '/reto/' + accion, {}); }
+// --- cliente elegido: se manda en cada petición y se recuerda en este navegador
+const selector = $('#cliente');
+let guardado = '';
+try { guardado = localStorage.getItem('cliente-cfdi') || ''; } catch (e) {}
+// mientras no llega la lista de clientes, vale el que se eligió la última vez
+function cliente() { return selector.options.length > 1 ? selector.value : guardado; }
+
+function clientes(lista) {
+  const elegido = cliente();
+  selector.replaceChildren(h('option', { value: '' }, 'Todos'),
+    ...lista.map(c => h('option', { value: c.rfc }, `${c.nombre || c.rfc} · ${c.rfc} (${c.facturas})`)));
+  // si el cliente guardado ya no existe en la base, se regresa a Todos
+  selector.value = lista.some(c => c.rfc === elegido) ? elegido : '';
+}
+
+function actualizar(datos) {
+  if (datos.cifras) $('#cifras').textContent = datos.cifras;
+  if (datos.clientes) clientes(datos.clientes);
+}
+
+async function estado() {
+  try {
+    const res = await fetch('/estado?cliente=' + encodeURIComponent(cliente()));
+    if (res.ok) actualizar(await res.json());
+  } catch (e) {}
+}
+
+selector.addEventListener('change', () => {
+  guardado = selector.value;
+  try { localStorage.setItem('cliente-cfdi', guardado); } catch (e) {}
+  estado();
+});
+
+function preguntar(pregunta) { return mandar(pregunta, '/preguntar', { pregunta, cliente: cliente() }); }
+function reto(accion, etiqueta) {
+  if (accion === 'subir') return $('#archivos').click();
+  return mandar(etiqueta, '/reto/' + accion, { cliente: cliente() });
+}
+
+// --- subir XML: con el botón o arrastrándolos a la página
+function subir(lista) {
+  const xml = [...lista].filter(f => f.name.toLowerCase().endsWith('.xml'));
+  if (!xml.length) return;
+  const mb = xml.reduce((s, f) => s + f.size, 0) / 1048576;
+  if (mb > MAX_MB) { pintar({ rol: 'ia', texto: `Son ${mb.toFixed(1)} MB; el máximo por subida es ${MAX_MB} MB.` }); abajo(); return; }
+  const datos = new FormData();
+  xml.forEach(f => datos.append('xml', f));
+  datos.append('cliente', cliente());
+  const nombres = xml.length === 1 ? xml[0].name : `${xml.length} archivos XML`;
+  return mandar('Subir ' + nombres, '/subir', datos);
+}
+$('#archivos').addEventListener('change', e => { subir(e.target.files); e.target.value = ''; });
+let arrastres = 0;  // dragenter/dragleave se disparan por cada elemento hijo; se cuentan para saber cuándo sale de la página
+const conArchivos = e => [...(e.dataTransfer?.types || [])].includes('Files');
+document.addEventListener('dragenter', e => { if (conArchivos(e)) { arrastres++; document.body.classList.add('arrastrando'); } });
+document.addEventListener('dragleave', e => { if (conArchivos(e) && --arrastres <= 0) { arrastres = 0; document.body.classList.remove('arrastrando'); } });
+document.addEventListener('dragover', e => { if (conArchivos(e)) e.preventDefault(); });
+document.addEventListener('drop', e => {
+  if (!conArchivos(e)) return;
+  e.preventDefault(); arrastres = 0; document.body.classList.remove('arrastrando');
+  subir(e.dataTransfer.files);
+});
 
 async function mandar(etiqueta, url, cuerpo) {
   if (enviar.disabled) return;
@@ -239,12 +316,13 @@ async function mandar(etiqueta, url, cuerpo) {
   enviar.disabled = true;
   let r;
   try {
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                   body: JSON.stringify(cuerpo) });
-    if (!res.ok) throw new Error(res.status);
+    const archivos = cuerpo instanceof FormData;
+    const res = await fetch(url, { method: 'POST', body: archivos ? cuerpo : JSON.stringify(cuerpo),
+                                   headers: archivos ? { 'X-Bot': '1' } : { 'Content-Type': 'application/json' } });
+    if (!res.ok && res.status !== 413) throw new Error(res.status);
     const datos = await res.json();
     r = { rol: 'ia', texto: datos.texto, consultas: datos.consultas, adjuntos: datos.adjuntos };
-    if (datos.cifras) $('#cifras').textContent = datos.cifras;
+    actualizar(datos);
     mensajes.push(r); guardar();
   } catch (e) {
     r = { rol: 'ia', texto: 'No se pudo conectar con el bot. ¿Sigue abierto bot.py en la terminal?' };
@@ -276,6 +354,10 @@ $('#nueva').addEventListener('click', async () => {
 
 RETO.forEach(([accion, etiqueta]) =>
   $('#reto').append(h('button', { class: 'boton', type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta)));
+$('#reto').append(h('span', { style: 'margin-left:8px' }, 'Extra:'));
+EXTRA.forEach(([accion, etiqueta]) =>
+  $('#reto').append(h('button', { class: 'boton', type: 'button', onclick: () => reto(accion, etiqueta) }, etiqueta)));
+estado();
 inicio();
 texto.focus();
 </script>

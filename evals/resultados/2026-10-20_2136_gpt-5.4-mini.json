@@ -1,0 +1,253 @@
+{
+  "modelo": "gpt-5.4-mini",
+  "fecha": "2026-10-20T21:36:05",
+  "correctas": 14,
+  "total": 17,
+  "corridas": [
+    {
+      "id": "total-facturado",
+      "vez": 1,
+      "pregunta": "¿Cuánto se facturó en total?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "Se facturó en total **$372,820.96**.",
+      "sql": [
+        "SELECT SUM(total) AS facturado_total FROM facturas WHERE tipo = 'I';"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "iva-total",
+      "vez": 1,
+      "pregunta": "¿Cuánto IVA trasladado hay en total?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "El **IVA trasladado total** es **$40,516.17**.",
+      "sql": [
+        "SELECT printf('$%,.2f', COALESCE(SUM(iva),0)) AS iva_total FROM facturas;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "numero-facturas",
+      "vez": 1,
+      "pregunta": "¿Cuántas facturas válidas hay en la base?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "Hay **16 facturas válidas** en la base.",
+      "sql": [
+        "SELECT COUNT(*) AS total_validas FROM facturas;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "total-por-cliente",
+      "vez": 1,
+      "pregunta": "¿Cuánto le facturaron a cada cliente?",
+      "cliente": null,
+      "ok": false,
+      "fallas": [
+        "falta «cliente demo»",
+        "falta «otro cliente demo»"
+      ],
+      "respuesta": "Facturado por cliente:\n\n- **CDE150101AB1** — $320,421.31\n- **OCD200101XY9** — $52,399.65",
+      "sql": [
+        "SELECT receptor_rfc, receptor_nombre, SUM(total) AS facturado FROM facturas WHERE tipo='I' GROUP BY receptor_rfc, receptor_nombre ORDER BY facturado DESC;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "proveedor-que-mas-facturo",
+      "vez": 1,
+      "pregunta": "¿Qué proveedor me facturó más?",
+      "cliente": "CDE150101AB1",
+      "ok": true,
+      "fallas": [],
+      "respuesta": "El proveedor que **más te facturó** fue **PAP180312KL4** (**PAPELERIA DEL BAJIO DEMO**) con **$107,825.92**.",
+      "sql": [
+        "WITH x AS (\n  SELECT emisor_rfc, emisor_nombre, SUM(total) AS facturado\n  FROM facturas\n  WHERE tipo = 'I'\n  GROUP BY emisor_rfc, emisor_nombre\n)\nSELECT emisor_rfc, emisor_nombre, facturado\nFROM x\nORDER BY facturado DESC\nLIMIT 1;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "proveedor-mas-iva",
+      "vez": 1,
+      "pregunta": "¿Qué proveedor me cobró más IVA?",
+      "cliente": "CDE150101AB1",
+      "ok": true,
+      "fallas": [],
+      "respuesta": "El proveedor que más IVA te cobró fue **PAP180312KL4** (**PAPELERIA DEL BAJIO DEMO**) con **$14,872.54**.",
+      "sql": [
+        "WITH iva_por_proveedor AS (\n  SELECT emisor_rfc, emisor_nombre, SUM(iva) AS iva_total\n  FROM facturas\n  WHERE tipo = 'I'\n  GROUP BY emisor_rfc, emisor_nombre\n)\nSELECT emisor_rfc, emisor_nombre, iva_total\nFROM iva_por_proveedor\nORDER BY iva_total DESC\nLIMIT 1;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "proveedor-sin-iva",
+      "vez": 1,
+      "pregunta": "¿Qué proveedor no cobra IVA?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "El proveedor que no cobra IVA es **ALI210622RT5 — ALIMENTOS SELECTOS ZAPOPAN DEMO**.",
+      "sql": [
+        "SELECT emisor_rfc, emisor_nombre, COUNT(*) AS facturas, SUM(CASE WHEN COALESCE(iva,0)=0 THEN 1 ELSE 0 END) AS sin_iva, SUM(CASE WHEN COALESCE(iva,0)=0 AND tipo='I' THEN 1 ELSE 0 END) AS sin_iva_ingreso, SUM(CASE WHEN COALESCE(iva,0)=0 AND tipo='I' THEN total ELSE 0 END) AS total_sin_iva_ingreso FROM facturas GROUP BY emisor_rfc, emisor_nombre HAVING sin_iva_ingreso > 0 AND sin_iva_ingreso = facturas"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "persona-fisica",
+      "vez": 1,
+      "pregunta": "¿Cuál de los proveedores es persona física?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "El proveedor que es **persona física** es:\n\n- **MAGR850714HJ3** — **MARIO GARCIA RUIZ**",
+      "sql": [
+        "SELECT DISTINCT emisor_rfc, emisor_nombre FROM facturas WHERE LENGTH(emisor_rfc)=13 ORDER BY emisor_rfc;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "conteo-de-un-proveedor",
+      "vez": 1,
+      "pregunta": "¿Cuántas facturas me mandó Servicios Logísticos Tapatíos?",
+      "cliente": "CDE150101AB1",
+      "ok": false,
+      "fallas": [
+        "falta «3»"
+      ],
+      "respuesta": "Servicios Logísticos Tapatíos te mandó **0 facturas**.",
+      "sql": [
+        "SELECT COUNT(*) AS conteo FROM facturas WHERE emisor_nombre LIKE '%Servicios Logísticos Tapatíos%'"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "factura-mas-alta",
+      "vez": 1,
+      "pregunta": "¿Cuál fue la factura más alta?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "La factura más alta fue la **A1011** del **2026-09-17**, por **$47,173.86**.  \nProveedor: **MARIO GARCIA RUIZ** (**MAGR850714HJ3**).",
+      "sql": [
+        "SELECT uuid, serie, folio, fecha, total, emisor_rfc, emisor_nombre, receptor_rfc, receptor_nombre FROM facturas ORDER BY total DESC LIMIT 1;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "que-se-compro",
+      "vez": 1,
+      "pregunta": "¿Qué le compré a la constructora?",
+      "cliente": "CDE150101AB1",
+      "ok": true,
+      "fallas": [],
+      "respuesta": "Le compraste a la constructora **Remodelación de oficina** por un total de **$44,107.20**.",
+      "sql": [
+        "SELECT c.descripcion, SUM(c.cantidad) AS cantidad_total, SUM(c.importe) AS importe_total, f.emisor_rfc, f.emisor_nombre\nFROM conceptos c\nJOIN facturas f ON f.uuid = c.uuid\nWHERE f.emisor_nombre LIKE '%constructora%' OR f.emisor_rfc LIKE '%constructora%'\nGROUP BY c.descripcion, f.emisor_rfc, f.emisor_nombre\nORDER BY importe_total DESC;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "duplicadas",
+      "vez": 1,
+      "pregunta": "¿Qué archivos venían duplicados?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "Venían duplicados estos archivos:\n\n- `cfdis/factura_04.xml`\n- `cfdis/factura_11.xml`\n- `ejemplos/otro_cliente/reenvio_factura_05.xml`",
+      "sql": [
+        "SELECT archivo, COUNT(*) AS duplicados, GROUP_CONCAT(uuid) AS uuids FROM incidencias WHERE nivel='ERROR' AND tipo='Duplicada' GROUP BY archivo ORDER BY archivo"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "archivo-danado",
+      "vez": 1,
+      "pregunta": "¿Qué archivo estaba dañado?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "El archivo dañado fue **cfdis/factura_19.xml**.",
+      "sql": [
+        "SELECT archivo, nivel, tipo, detalle FROM incidencias WHERE nivel='ERROR' AND tipo='XML dañado'"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "archivo-que-no-es-cfdi",
+      "vez": 1,
+      "pregunta": "¿Hubo algún archivo que no fuera una factura?",
+      "cliente": null,
+      "ok": false,
+      "fallas": [
+        "falta «factura_20»"
+      ],
+      "respuesta": "Sí. Hubo **5 archivos** que no fueron facturas:\n\n- **3 duplicadas**\n- **1 que no era CFDI**\n- **1 XML dañado**",
+      "sql": [
+        "SELECT nivel, tipo, COUNT(*) AS conteo FROM incidencias WHERE nivel='ERROR' AND tipo IN ('XML dañado','XML no permitido','No es CFDI','Sin timbre','Duplicada','Datos incompletos','Error inesperado') GROUP BY nivel, tipo ORDER BY conteo DESC, tipo ASC;"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "solo-el-cliente-elegido",
+      "vez": 1,
+      "pregunta": "¿Cuánto se facturó en total?",
+      "cliente": "OCD200101XY9",
+      "ok": true,
+      "fallas": [],
+      "respuesta": "Se facturó en total **$52,399.65**.",
+      "sql": [
+        "SELECT SUM(total) AS facturado_total FROM facturas WHERE tipo='I'"
+      ],
+      "errores_sql": 0,
+      "pdf": []
+    },
+    {
+      "id": "pdf-de-la-mas-alta",
+      "vez": 1,
+      "pregunta": "Dame el PDF de la factura más alta",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "Adjunto el PDF de la factura más alta.",
+      "sql": [
+        "SELECT uuid, total FROM facturas ORDER BY total DESC LIMIT 1;"
+      ],
+      "errores_sql": 0,
+      "pdf": [
+        "7AAC319F-FB75-9E0F-ED1D-9D1690624FE3"
+      ]
+    },
+    {
+      "id": "fuera-de-tema",
+      "vez": 1,
+      "pregunta": "¿Cuál es la capital de Francia?",
+      "cliente": null,
+      "ok": true,
+      "fallas": [],
+      "respuesta": "Solo atiendo temas de las facturas cargadas.",
+      "sql": [],
+      "errores_sql": 0,
+      "pdf": []
+    }
+  ]
+}

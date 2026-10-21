@@ -9,6 +9,8 @@ from revision import config, reportes
 from revision.base import cargar
 from revision.lectura import Invalido, leer_cfdi
 
+OTRO_CLIENTE = "OCD200101XY9"  # receptor de los XML de ejemplos/otro_cliente/
+
 
 def test_extrae_los_campos():
     factura, conceptos, avisos = leer_cfdi(config.CFDIS / "factura_01.xml")
@@ -24,6 +26,15 @@ def test_archivos_invalidos(archivo, tipo):
     with pytest.raises(Invalido) as e:
         leer_cfdi(config.CFDIS / archivo)
     assert e.value.tipo == tipo
+
+
+def test_xml_malicioso(tmp_path):
+    # "billion laughs": entidades que se expanden sin fin para agotar la memoria
+    bomba = tmp_path / "bomba.xml"
+    bomba.write_text('<?xml version="1.0"?><!DOCTYPE r [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;&a;">]><r>&b;</r>')
+    with pytest.raises(Invalido) as e:
+        leer_cfdi(bomba)
+    assert e.value.tipo == "XML no permitido"
 
 
 def test_carga_sin_detenerse(salida, consulta):
@@ -48,6 +59,18 @@ def test_resumen_de_mayor_a_menor(salida):
     assert [f[5] for f in filas] == sorted((f[5] for f in filas), reverse=True)
     pap = filas[0]
     assert pap[2] == 4 and pap[5] == 107825.92  # el duplicado (factura_04) no suma
+
+
+def test_reportes_por_cliente(dos_clientes, consulta):
+    assert consulta("SELECT COUNT(*) FROM facturas") == [(16,)]  # 14 + 2; el reenvío de factura_05 es duplicado
+    _, clientes = reportes.resumen_clientes()
+    assert [(c[0], c[2]) for c in clientes] == [("CDE150101AB1", 14), (OTRO_CLIENTE, 2)]
+    _, filas = reportes.detalle(OTRO_CLIENTE)
+    assert len(filas) == 2 and {f[7] for f in filas} == {OTRO_CLIENTE}
+    _, filas = reportes.resumen(OTRO_CLIENTE)
+    assert [f[0] for f in filas] == ["CON170405PL9", "SLT200915QW2"]
+    _, filas = reportes.incidencias(carpeta=config.RAIZ / "ejemplos" / "otro_cliente")
+    assert [(f[0], f[2]) for f in filas] == [("reenvio_factura_05.xml", "Duplicada")]
 
 
 def test_reto_genera_excel_y_log(tmp_path, monkeypatch):

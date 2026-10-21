@@ -1,0 +1,93 @@
+[
+  {
+    "id": "total-facturado",
+    "pregunta": "¿Cuánto se facturó en total?",
+    "contiene": ["372820.96"]
+  },
+  {
+    "id": "iva-total",
+    "pregunta": "¿Cuánto IVA trasladado hay en total?",
+    "contiene": ["40516.17"]
+  },
+  {
+    "id": "numero-facturas",
+    "pregunta": "¿Cuántas facturas válidas hay en la base?",
+    "contiene": ["16"]
+  },
+  {
+    "id": "total-por-cliente",
+    "pregunta": "¿Cuánto le facturaron a cada cliente?",
+    "contiene": ["cliente demo", "320421.31", "otro cliente demo", "52399.65"]
+  },
+  {
+    "id": "proveedor-que-mas-facturo",
+    "cliente": "CDE150101AB1",
+    "pregunta": "¿Qué proveedor me facturó más?",
+    "contiene": ["papeleria del bajio", "107825.92"]
+  },
+  {
+    "id": "proveedor-mas-iva",
+    "cliente": "CDE150101AB1",
+    "pregunta": "¿Qué proveedor me cobró más IVA?",
+    "contiene": ["papeleria", "14872.54"]
+  },
+  {
+    "id": "proveedor-sin-iva",
+    "pregunta": "¿Qué proveedor no cobra IVA?",
+    "contiene": ["alimentos selectos"]
+  },
+  {
+    "id": "persona-fisica",
+    "pregunta": "¿Cuál de los proveedores es persona física?",
+    "contiene": ["mario garcia"]
+  },
+  {
+    "id": "conteo-de-un-proveedor",
+    "cliente": "CDE150101AB1",
+    "pregunta": "¿Cuántas facturas me mandó Servicios Logísticos Tapatíos?",
+    "contiene": ["3"]
+  },
+  {
+    "id": "factura-mas-alta",
+    "pregunta": "¿Cuál fue la factura más alta?",
+    "contiene": ["47173.86", "mario garcia"]
+  },
+  {
+    "id": "que-se-compro",
+    "cliente": "CDE150101AB1",
+    "pregunta": "¿Qué le compré a la constructora?",
+    "contiene": ["remodelacion"]
+  },
+  {
+    "id": "duplicadas",
+    "pregunta": "¿Qué archivos venían duplicados?",
+    "contiene": ["factura_04", "factura_11", "reenvio_factura_05"]
+  },
+  {
+    "id": "archivo-danado",
+    "pregunta": "¿Qué archivo estaba dañado?",
+    "contiene": ["factura_19"]
+  },
+  {
+    "id": "archivo-que-no-es-cfdi",
+    "pregunta": "¿Hubo algún archivo que no fuera una factura?",
+    "contiene": ["factura_20"]
+  },
+  {
+    "id": "solo-el-cliente-elegido",
+    "cliente": "OCD200101XY9",
+    "pregunta": "¿Cuánto se facturó en total?",
+    "contiene": ["52399.65"],
+    "no_contiene": ["372820.96", "320421.31"]
+  },
+  {
+    "id": "pdf-de-la-mas-alta",
+    "pregunta": "Dame el PDF de la factura más alta",
+    "pdf": ["7AAC319F-FB75-9E0F-ED1D-9D1690624FE3"]
+  },
+  {
+    "id": "fuera-de-tema",
+    "pregunta": "¿Cuál es la capital de Francia?",
+    "no_contiene": ["paris"]
+  }
+]
