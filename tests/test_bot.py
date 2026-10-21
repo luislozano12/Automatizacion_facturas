@@ -164,7 +164,7 @@ def test_filtro_por_cliente_en_la_web(cliente):
 
     from openpyxl import load_workbook
     wb = load_workbook(BytesIO(cliente.get(f"/reporte_cfdi.xlsx?cliente={OTRO_CLIENTE}").data))
-    assert wb["Detalle"].max_row == 3  # encabezado + 2 facturas
+    assert wb["Detalle"].max_row == 7  # título (3 filas) + encabezado + 2 facturas + total
     assert cliente.post("/reto/detalle", json={"cliente": "no es rfc"}).status_code == 400
 
 

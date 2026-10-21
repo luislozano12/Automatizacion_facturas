@@ -79,8 +79,10 @@ def test_reto_genera_excel_y_log(tmp_path, monkeypatch):
     reto.main([])
     wb = load_workbook(tmp_path / "reporte_cfdi.xlsx")
     assert wb.sheetnames == ["Detalle", "Resumen por proveedor"]
-    assert wb["Detalle"].max_row == 15  # encabezado + 14 facturas
-    assert wb["Resumen por proveedor"]["A2"].value == "PAP180312KL4"
+    assert wb["Detalle"].max_row == 19  # título (3 filas) + encabezado + 14 facturas + total
+    assert wb["Detalle"]["A4"].value == "UUID" and wb["Detalle"]["A19"].value == "TOTAL"
+    assert wb["Resumen por proveedor"]["A5"].value == "PAP180312KL4"
+    assert wb["Resumen por proveedor"]["F11"].value == "=SUM(F5:F10)"  # el total es fórmula
     assert "Duplicada" in (tmp_path / "incidencias.log").read_text(encoding="utf-8")
 
 

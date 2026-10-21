@@ -73,57 +73,130 @@ def clientes():
 
 # --- Excel
 
+# Formato corporativo: la paleta de KM&G (carbón y dorado). Cambiar aquí cambia todo el Excel.
+CARBON, DORADO, GRIS, FRANJA, LINEA = "1F1F1F", "C9A13B", "6B7280", "F6F4EF", "DDD8CC"
+FUENTE = "Calibri"
+FILA_ENCABEZADO = 4  # filas 1-2: título y datos del reporte; 3: separación
+DINERO = '"$"#,##0.00'
+FECHA = "dd/mm/yyyy hh:mm"
+
+
 def libro(cliente=None):
     """El Excel de revisión (hojas "Detalle" y "Resumen por proveedor"), o None si no hay facturas."""
     from openpyxl import Workbook
-    from openpyxl.styles import Font
 
     columnas, facturas = detalle(cliente)
     if not facturas:
         return None
+    nombre_cliente = f"{facturas[0][8] or cliente} ({cliente})" if cliente else "Todos"
+    generado = f"Generado el {datetime.now():%d/%m/%Y %H:%M} · Cliente: {nombre_cliente}"
+
     wb = Workbook()
-    ws = wb.active
-    ws.title = "Detalle"
-    ws.append(columnas)
+    wb.properties.title = "Revisión de CFDI"
+    wb.properties.creator = "Revisión de CFDI"
+    filas = []
     for f in facturas:
         f = list(f)
         try:
             f[3] = datetime.fromisoformat(f[3])  # la fecha como fecha de Excel
         except ValueError:
             pass  # se deja el texto tal como venía en el XML
-        ws.append(f)
-    formato(ws, dinero=(4, 5, 6), fecha=3)
+        filas.append(f)
+    hoja(wb.active, "Detalle", "Revisión de CFDI · Detalle de facturas",
+         f"{generado} · {len(filas)} facturas", columnas, filas, dinero=(4, 5, 6), fecha=3, totales=(4, 5, 6))
 
-    w2 = wb.create_sheet("Resumen por proveedor")
     columnas, proveedores = resumen(cliente)
-    w2.append(columnas)
-    for fila in proveedores:
-        w2.append(list(fila))
-    n = len(proveedores) + 1
-    w2.append(["TOTAL", None, f"=SUM(C2:C{n})", f"=SUM(D2:D{n})", f"=SUM(E2:E{n})", f"=SUM(F2:F{n})"])
-    formato(w2, dinero=(3, 4, 5), filtro=False)
-    for c in w2[n + 1]:
-        c.font = Font(bold=True)
+    hoja(wb.create_sheet(), "Resumen por proveedor", "Revisión de CFDI · Resumen por proveedor",
+         f"{generado} · {len(proveedores)} proveedores · de mayor a menor total facturado",
+         columnas, proveedores, dinero=(3, 4, 5), totales=(2, 3, 4, 5))
     return wb
 
 
-def formato(ws, dinero=(), fecha=None, filtro=True):
-    """Encabezado en negritas, primera fila fija, formato de moneda y fecha, y ancho de columnas."""
-    from openpyxl.styles import Font, PatternFill
+def hoja(ws, nombre, titulo, subtitulo, columnas, filas, dinero=(), fecha=None, totales=()):
+    """Llena una hoja con formato corporativo: título, encabezado oscuro con línea dorada, filas alternadas,
+    fila de totales, filtros, primera fila fija y lista para imprimir. `totales` son las columnas que se suman."""
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
 
-    for c in ws[1]:
-        c.font = Font(bold=True)
-        c.fill = PatternFill("solid", fgColor="D9D9D9")
-    ws.freeze_panes = "A2"
-    if filtro:
-        ws.auto_filter.ref = ws.dimensions
-    for i, col in enumerate(ws.columns):
-        for c in col[1:]:
+    ws.title = nombre
+    ws.sheet_view.showGridLines = False
+    ws.sheet_properties.tabColor = DORADO
+    ultima = get_column_letter(len(columnas))
+    linea = Side(style="thin", color=LINEA)
+    dorada = Side(style="medium", color=DORADO)
+
+    # título y datos del reporte
+    ws["A1"] = titulo
+    ws["A1"].font = Font(name=FUENTE, size=16, bold=True, color=CARBON)
+    ws["A2"] = subtitulo
+    ws["A2"].font = Font(name=FUENTE, size=10, color=GRIS)
+    ws.row_dimensions[1].height = 26
+    for i in range(1, len(columnas) + 1):  # la línea dorada bajo el título, a todo el ancho de la tabla
+        ws.cell(2, i).border = Border(bottom=dorada)
+
+    # encabezado de la tabla
+    ws.append([])  # fila 3, separación
+    ws.append(columnas)
+    for c in ws[FILA_ENCABEZADO]:
+        c.font = Font(name=FUENTE, size=10, bold=True, color="FFFFFF")
+        c.fill = PatternFill("solid", fgColor=CARBON)
+        c.border = Border(bottom=dorada)
+        c.alignment = Alignment(horizontal="right" if c.column - 1 in dinero + totales else "left",
+                                vertical="center", wrap_text=True, indent=1)
+    ws.row_dimensions[FILA_ENCABEZADO].height = 22
+
+    # datos, con filas alternadas
+    for n, fila in enumerate(filas):
+        ws.append(list(fila))
+        for c in ws[ws.max_row]:
+            i = c.column - 1
+            c.font = Font(name=FUENTE, size=10, color=CARBON)
+            c.border = Border(bottom=linea)
+            if n % 2:
+                c.fill = PatternFill("solid", fgColor=FRANJA)
             if i in dinero:
-                c.number_format = '"$"#,##0.00'
+                c.number_format = DINERO
             elif i == fecha:
-                c.number_format = "yyyy-mm-dd hh:mm"
-        ws.column_dimensions[col[0].column_letter].width = min(max(len(str(c.value or "")) for c in col) + 3, 50)
+                c.number_format = FECHA
+            elif isinstance(c.value, int):
+                c.number_format = "#,##0"
+            # margen interior para que las columnas no se peguen; cifras a la derecha, lo demás a la izquierda
+            c.alignment = Alignment(horizontal="right" if i in dinero + totales else "left", indent=1)
+    primera, fin = FILA_ENCABEZADO + 1, FILA_ENCABEZADO + len(filas)
+
+    # totales: fórmulas, para que sigan cuadrando si alguien edita el Excel
+    if totales and filas:
+        ws.append(["TOTAL"] + [None] * (len(columnas) - 1))
+        for i in totales:
+            letra = get_column_letter(i + 1)
+            ws.cell(ws.max_row, i + 1, f"=SUM({letra}{primera}:{letra}{fin})")
+        for c in ws[ws.max_row]:
+            c.font = Font(name=FUENTE, size=10, bold=True, color=CARBON)
+            c.border = Border(top=dorada, bottom=dorada)
+            c.number_format = DINERO if c.column - 1 in dinero else "#,##0"
+            c.alignment = Alignment(horizontal="right" if c.column - 1 in totales else "left", indent=1)
+
+    # anchos según el contenido
+    for i, titulo_col in enumerate(columnas, start=1):
+        valores = [ws.cell(r, i).value for r in range(primera, fin + 1)]
+        largo = max([len(str(titulo_col))] + [17 if isinstance(v, datetime) else
+                                             len(f"{v:,.2f}") + 2 if isinstance(v, float) else
+                                             len(str(v or "")) for v in valores])
+        ws.column_dimensions[get_column_letter(i)].width = min(max(largo + 4, 10), 45)  # +4: texto + margen interior
+
+    ws.freeze_panes = f"A{primera}"
+    ws.auto_filter.ref = f"A{FILA_ENCABEZADO}:{ultima}{fin}"
+
+    # impresión: horizontal, al ancho de la hoja, encabezado en cada página y número de página
+    ws.page_setup.orientation = "landscape"
+    if len(columnas) > 8:  # el detalle es ancho: en oficio la letra sale más grande que en carta
+        ws.page_setup.paperSize = ws.PAPERSIZE_LEGAL
+    ws.page_setup.fitToWidth, ws.page_setup.fitToHeight = 1, 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.print_title_rows = f"{FILA_ENCABEZADO}:{FILA_ENCABEZADO}"
+    ws.print_options.horizontalCentered = True
+    ws.oddFooter.left.text = titulo
+    ws.oddFooter.right.text = "Página &P de &N"  # &P y &N son códigos de Excel: página actual y total
 
 
 def excel(destino=None, cliente=None):
